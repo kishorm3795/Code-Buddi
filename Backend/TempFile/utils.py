@@ -22,6 +22,9 @@ class MockRedis:
         self.data = {}
     def ping(self):
         return True
+    def set(self, name, value, ex=None):
+        self.data[name] = value
+        return True
     def setex(self, name, time, value):
         self.data[name] = value
         return True
@@ -33,6 +36,12 @@ class MockRedis:
         return True
     def exists(self, name):
         return name in self.data
+    def ttl(self, name):
+        if name in self.data:
+            return 100 # Mock TTL
+        return -2
+    def close(self):
+        pass
 
 def get_redis_connection():
     try:
