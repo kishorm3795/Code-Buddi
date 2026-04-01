@@ -1,0 +1,900 @@
+/* Google Fonts - Tron Legacy Inspired */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@import "tailwindcss";
+@plugin "tailwindcss-motion";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tron Legacy Color Variables */
+:root {
+  --tron-cyan: #00ffff;
+  --tron-cyan-dim: #00c4d4;
+  --tron-blue: #00ccff;
+  --tron-dark: #0a0a0a;
+  --tron-gray: #1a1a2e;
+  --tron-surface: #0f172a;
+  --tron-card: #1e293b;
+  --tron-orange: #ff6b35;
+  --tron-green: #39ff14;
+  --tron-red: #ff0055;
+  --tron-purple: #bf00ff;
+  --tron-gold: #ffd700;
+}
+
+/* Dark Mode Variables */
+.dark {
+  --bg-primary: #030712;
+  --bg-secondary: #0f172a;
+  --bg-tertiary: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+}
+
+/* Light Mode Variables */
+:root {
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #64748b;
+  --border-color: #cbd5e1;
+}
+
+/* Base Styles */
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+/* Tron Legacy Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================
+   TRON ADVANCED EFFECTS
+   ============================================ */
+
+/* Holographic Grid Background */
+.tron-grid-bg {
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+  0% { background-position: 0 0, 0 0, 0 0, 0 0; }
+  100% { background-position: 100px 100px, 100px 100px, 20px 20px, 20px 20px; }
+}
+
+/* Perspective Grid Floor */
+.tron-grid-floor {
+  perspective: 500px;
+  overflow: hidden;
+}
+
+.tron-grid-floor::before {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: 
+    linear-gradient(transparent 0%, rgba(0, 240, 255, 0.1) 2%, transparent 4%),
+    linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.1) 2%, transparent 4%);
+  background-size: 100px 100px;
+  transform: rotateX(60deg);
+  animation: grid-floor-move 10s linear infinite;
+}
+
+@keyframes grid-floor-move {
+  0% { transform: rotateX(60deg) translateY(0); }
+  100% { transform: rotateX(60deg) translateY(100px); }
+}
+
+/* Animated Glow Effects */
+.tron-glow {
+  box-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan), 0 0 30px rgba(0, 240, 255, 0.3);
+}
+
+.tron-glow-sm {
+  box-shadow: 0 0 5px var(--tron-cyan), 0 0 10px var(--tron-cyan);
+}
+
+.tron-glow-text {
+  text-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan), 0 0 30px rgba(0, 240, 255, 0.5);
+}
+
+.tron-glow-orange {
+  box-shadow: 0 0 10px var(--tron-orange), 0 0 20px var(--tron-orange);
+}
+
+.tron-glow-green {
+  box-shadow: 0 0 10px var(--tron-green), 0 0 20px var(--tron-green);
+}
+
+.tron-glow-red {
+  box-shadow: 0 0 10px var(--tron-red), 0 0 20px var(--tron-red);
+}
+
+/* Border Effects */
+.tron-border {
+  border: 2px solid var(--tron-cyan);
+  box-shadow: 0 0 10px var(--tron-cyan), inset 0 0 10px rgba(0, 240, 255, 0.1);
+}
+
+.tron-border-sm {
+  border: 1px solid var(--tron-cyan);
+  box-shadow: 0 0 5px var(--tron-cyan);
+}
+
+.tron-border-glow {
+  border: 2px solid transparent;
+  background: linear-gradient(var(--tron-cyan), var(--tron-cyan)) border-box;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+}
+
+/* Advanced Glow Ring with Animation */
+.tron-ring {
+  position: relative;
+}
+
+.tron-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: conic-gradient(from 0deg, var(--tron-cyan), var(--tron-blue), var(--tron-purple), var(--tron-cyan));
+  border-radius: inherit;
+  z-index: -1;
+  animation: tron-rotate 4s linear infinite;
+  opacity: 0.7;
+}
+
+.tron-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--bg-secondary);
+  z-index: 0;
+}
+
+.tron-ring > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes tron-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Pulse Animation */
+.tron-pulse {
+  animation: tron-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tron-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan);
+  }
+  50% { 
+    box-shadow: 0 0 20px var(--tron-cyan), 0 0 40px var(--tron-cyan), 0 0 60px rgba(0, 240, 255, 0.4);
+  }
+}
+
+/* Text Gradient */
+.tron-text-gradient {
+  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue), var(--tron-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glassmorphism */
+.tron-glass {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+/* Scanline Effect */
+.tron-scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-scanlines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ============================================
+   BUTTON STYLES
+   ============================================ */
+
+.tron-btn {
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.tron-btn:hover::before {
+  left: 100%;
+}
+
+.tron-btn-primary {
+  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue));
+  color: #000;
+  border: none;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+}
+
+.tron-btn-primary:hover {
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.5), 0 0 60px rgba(0, 240, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.tron-btn-secondary {
+  background: transparent;
+  color: var(--tron-cyan);
+  border: 2px solid var(--tron-cyan);
+}
+
+.tron-btn-secondary:hover {
+  background: rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+}
+
+/* ============================================
+   INPUT STYLES
+   ============================================ */
+
+.tron-input {
+  font-family: 'Rajdhani', sans-serif;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.tron-input:focus {
+  border-color: var(--tron-cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2), inset 0 0 5px rgba(0, 240, 255, 0.05);
+  outline: none;
+}
+
+.tron-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   CARD STYLES
+   ============================================ */
+
+.tron-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.tron-card:hover {
+  border-color: var(--tron-cyan);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+}
+
+/* ============================================
+   LINK STYLES
+   ============================================ */
+
+.tron-link {
+  color: var(--tron-cyan);
+  text-decoration: none;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.tron-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--tron-cyan);
+  box-shadow: 0 0 10px var(--tron-cyan);
+  transition: width 0.3s ease;
+}
+
+.tron-link:hover::after {
+  width: 100%;
+}
+
+.tron-link:hover {
+  text-shadow: 0 0 10px var(--tron-cyan);
+}
+
+/* ============================================
+   LOADING SPINNER
+   ============================================ */
+
+.tron-spinner {
+  border: 3px solid var(--bg-tertiary);
+  border-top: 3px solid var(--tron-cyan);
+  border-radius: 50%;
+  animation: tron-spin 1s linear infinite;
+}
+
+@keyframes tron-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ============================================
+   FOOTER STYLES
+   ============================================ */
+
+.tron-footer {
+  background: linear-gradient(180deg, transparent, rgba(0, 240, 255, 0.05));
+  border-top: 1px solid rgba(0, 240, 255, 0.1);
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tron-cyan);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tron-blue);
+}
+
+/* ============================================
+   SELECTION COLOR
+   ============================================ */
+
+::selection {
+  background: rgba(0, 240, 255, 0.3);
+  color: var(--tron-cyan);
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan);
+  }
+  to {
+    box-shadow: 0 0 20px var(--tron-cyan), 0 0 40px var(--tron-cyan), 0 0 60px rgba(0, 240, 255, 0.4);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ============================================
+   CODE EDITOR SPECIFIC
+   ============================================ */
+
+.monaco-editor {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* ============================================
+   HEADER LOGO ANIMATION
+   ============================================ */
+
+.tron-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  position: relative;
+  display: inline-block;
+}
+
+.tron-logo::after {
+  content: 'BUDDI';
+  position: absolute;
+  left: 100%;
+  top: 0;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--tron-purple), var(--tron-orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  opacity: 0.9;
+  margin-left: 4px;
+}
+
+@media (max-width: 640px) {
+  .tron-logo::after {
+    display: none;
+  }
+}
+
+/* ============================================
+   SWEETALERT2 DARK THEME OVERRIDES
+   ============================================ */
+
+.dark div:where(.swal2-container) div:where(.swal2-popup) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  color-scheme: dark;
+  border: 1px solid var(--tron-cyan);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+}
+
+.dark div:where(.swal2-container) div:where(.swal2-validation-message) {
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--tron-cyan);
+  border: 1px solid var(--tron-cyan);
+}
+
+.dark div:where(.swal2-container) .swal2-title {
+  color: var(--tron-cyan);
+  font-family: 'Orbitron', sans-serif;
+}
+
+.dark div:where(.swal2-container) .swal2-html-container {
+  color: var(--text-secondary);
+}
+
+.dark div:where(.swal2-container) .swal2-confirm,
+.dark div:where(.swal2-container) .swal2-cancel {
+  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue)) !important;
+  color: #000 !important;
+  font-family: 'Orbitron', sans-serif;
+  border: none !important;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3) !important;
+}
+
+.dark div:where(.swal2-container) .swal2-confirm:hover,
+.dark div:where(.swal2-container) .swal2-cancel:hover {
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.5) !important;
+}
+
+.dark div:where(.swal2-container) .swal2-icon {
+  border-color: var(--tron-cyan);
+  color: var(--tron-cyan);
+}
+
+.dark div:where(.swal2-container) .swal2-icon.swal2-error {
+  border-color: var(--tron-red);
+  color: var(--tron-red);
+}
+
+.dark div:where(.swal2-container) .swal2-icon.swal2-success {
+  border-color: var(--tron-green);
+  color: var(--tron-green);
+}
+
+.dark div:where(.swal2-container) .swal2-input,
+.dark div:where(.swal2-container) .swal2-textarea {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.dark div:where(.swal2-container) .swal2-input:focus,
+.dark div:where(.swal2-container) .swal2-textarea:focus {
+  border-color: var(--tron-cyan);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+}
+
+.dark div:where(.swal2-container) .swal2-checkbox input {
+  accent-color: var(--tron-cyan);
+}
+
+.dark div:where(.swal2-container) .swal2-radio-group label {
+  color: var(--text-secondary);
+}
+
+.dark div:where(.swal2-container) .swal2-radio-group input[type="radio"] {
+  accent-color: var(--tron-cyan);
+}
+
+.grecaptcha-badge {
+  display: none !important;
+}
+
+/* ============================================
+   RESPONSIVE TYPOGRAPHY
+   ============================================ */
+
+@media (max-width: 768px) {
+  h1 { font-size: 1.875rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+}
+
+/* ============================================
+   NEW TRON ADVANCED EFFECTS FOR HOMEPAGE
+   ============================================ */
+
+/* Particle Background */
+.tron-particles {
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-particles::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(191, 0, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+  animation: particles-pulse 8s ease-in-out infinite;
+}
+
+@keyframes particles-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Glowing Orb */
+.tron-orb {
+  position: relative;
+}
+
+.tron-orb::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200%;
+  height: 200%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(0, 240, 255, 0.2) 0%, transparent 70%);
+  animation: orb-pulse 4s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+}
+
+/* Advanced Card Hover Effect */
+.tron-card-advanced {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tron-card-advanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.tron-card-advanced:hover::before {
+  left: 100%;
+}
+
+.tron-card-advanced::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  background: linear-gradient(var(--tron-cyan), var(--tron-blue)) border-box;
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tron-card-advanced:hover::after {
+  opacity: 1;
+}
+
+.tron-card-advanced:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 0 50px rgba(0, 255, 255, 0.4), 0 0 20px rgba(0, 255, 255, 0.2);
+}
+
+/* Holographic Text Effect */
+.tron-holographic {
+  background: linear-gradient(
+    135deg,
+    var(--tron-cyan) 0%,
+    var(--tron-blue) 20%,
+    var(--tron-purple) 40%,
+    var(--tron-orange) 60%,
+    var(--tron-green) 80%,
+    var(--tron-cyan) 100%
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: holographic-shift 8s ease infinite;
+}
+
+@keyframes holographic-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Digital Rain Effect */
+.tron-digital-rain {
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-digital-rain::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 40px,
+    rgba(0, 255, 255, 0.05) 40px,
+    rgba(0, 255, 255, 0.05) 41px
+  );
+  background-size: 100% 80px;
+  animation: digital-rain 4s linear infinite;
+}
+
+@keyframes digital-rain {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 80px; }
+}
+
+/* Neon Border Animation */
+.tron-neon-border {
+  position: relative;
+}
+
+.tron-neon-border::before,
+.tron-neon-border::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--tron-cyan);
+  transition: all 0.3s ease;
+}
+
+.tron-neon-border::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.tron-neon-border::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+}
+
+.tron-neon-border:hover::before,
+.tron-neon-border:hover::after {
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+}
+
+/* Floating Grid Animation */
+.tron-floating-grid {
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: floating-grid 15s linear infinite;
+}
+
+@keyframes floating-grid {
+  0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+  100% { transform: perspective(500px) rotateX(60deg) translateY(40px); }
+}
+
+/* Title Glow */
+.tron-title-glow {
+  text-shadow: 
+    0 0 10px var(--tron-cyan),
+    0 0 20px var(--tron-cyan),
+    0 0 40px var(--tron-cyan),
+    0 0 80px var(--tron-cyan);
+  animation: title-pulse 2s ease-in-out infinite;
+}
+
+@keyframes title-pulse {
+  0%, 100% { 
+    text-shadow: 
+      0 0 10px var(--tron-cyan),
+      0 0 20px var(--tron-cyan),
+      0 0 40px var(--tron-cyan),
+      0 0 80px var(--tron-cyan);
+  }
+  50% { 
+    text-shadow: 
+      0 0 20px var(--tron-cyan),
+      0 0 40px var(--tron-cyan),
+      0 0 60px var(--tron-cyan),
+      0 0 100px var(--tron-cyan);
+  }
+}
+
+/* Icon Glow Effect */
+.tron-icon-glow {
+  filter: drop-shadow(0 0 5px var(--tron-cyan));
+  transition: all 0.3s ease;
+}
+
+.tron-icon-glow:hover {
+  filter: drop-shadow(0 0 15px var(--tron-cyan));
+  transform: scale(1.1);
+}
+
+/* Animated Background Lines */
+.tron-bg-lines {
+  position: relative;
+  overflow: hidden;
+}
+
+.tron-bg-lines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: 
+    linear-gradient(90deg, 
+      transparent 0%,
+      rgba(0, 240, 255, 0.03) 50%,
+      transparent 100%
+    );
+  animation: bg-lines-move 3s linear infinite;
+}
+
+@keyframes bg-lines-move {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Glitch Effect for Title */
+.tron-glitch {
+  position: relative;
+  animation: glitch-skew 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+}
+
+.tron-glitch::before,
+.tron-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tron-glitch::before {
+  animation: glitch-1 0.4s infinite linear alternate-reverse;
+  color: var(--tron-cyan);
+  z-index: -1;
+}
+
+.tron-glitch::after {
+  animation: glitch-2 0.4s infinite linear alternate-reverse;
+  color: var(--tron-purple);
+  z-index: -2;
+}
+
+@keyframes glitch-1 {
+  0% { clip-path: inset(20% 0 80% 0); transform: translate(-3px, 2px); }
+  20% { clip-path: inset(60% 0 10% 0); transform: translate(3px, -2px); }
+  40% { clip-path: inset(40% 0 50% 0); transform: translate(-3px, 2px); }
+  60% { clip-path: inset(80% 0 5% 0); transform: translate(3px, -2px); }
+  80% { clip-path: inset(10% 0 70% 0); transform: translate(-3px, 2px); }
+  100% { clip-path: inset(30% 0 50% 0); transform: translate(3px, -2px); }
+}
+
+@keyframes glitch-2 {
+  0% { clip-path: inset(10% 0 60% 0); transform: translate(3px, -2px); }
+  20% { clip-path: inset(30% 0 20% 0); transform: translate(-3px, 2px); }
+  40% { clip-path: inset(70% 0 10% 0); transform: translate(3px, -2px); }
+  60% { clip-path: inset(20% 0 50% 0); transform: translate(-3px, 2px); }
+  80% { clip-path: inset(60% 0 30% 0); transform: translate(3px, -2px); }
+  100% { clip-path: inset(5% 0 80% 0); transform: translate(-3px, 2px); }
+}
+
+@keyframes glitch-skew {
+  0%, 100% { transform: skew(0deg); }
+  20% { transform: skew(-2deg); }
+  40% { transform: skew(2deg); }
+  60% { transform: skew(-1deg); }
+  80% { transform: skew(1deg); }
+}
+
