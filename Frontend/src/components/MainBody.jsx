@@ -9,7 +9,7 @@ const MainBody = ({ isDarkMode, toggleTheme }) => {
       {/* Subtle Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
         {/* Gradient Orbs */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-green-500/5 dark:bg-green-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 dark:bg-purple-500/10 rounded-full blur-3xl" />
         
         {/* Subtle Grid */}

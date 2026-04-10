@@ -1160,11 +1160,11 @@ const CodeEditor = ({
 
   const RenderOutput = () => (
     <>
-      <div className="mt-6 tron-glass rounded-xl overflow-hidden border border-gray-200 dark:border-cyan-500/20 shadow-xl">
-        <div className="bg-gray-100/50 dark:bg-gray-800/50 p-3 border-b border-gray-200 dark:border-cyan-500/10">
+      <div className="mt-6 hacker-glass rounded-xl overflow-hidden border border-gray-200 dark:border-green-500/20 shadow-xl">
+        <div className="bg-gray-100/50 dark:bg-gray-800/50 p-3 border-b border-gray-200 dark:border-green-500/10">
           <div className="flex items-center space-x-2">
-            <BiTerminal className="ml-2 text-xl text-cyan-400" />
-            <h2 className="text-lg font-bold text-gray-700 dark:text-cyan-400 tracking-wide">Output</h2>
+            <BiTerminal className="ml-2 text-xl text-green-400" />
+            <h2 className="text-lg font-bold text-gray-700 dark:text-green-400 tracking-wide">Output</h2>
           </div>
         </div>
 
@@ -1183,16 +1183,16 @@ const CodeEditor = ({
 
   return (
     <div className="mx-auto p-4 max-w-6xl">
-      <div className="bg-white dark:bg-gray-800/50 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 dark:border-cyan-500/20 overflow-hidden tron-glass">
+      <div className="bg-white dark:bg-gray-800/50 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 dark:border-green-500/20 overflow-hidden hacker-glass">
         {/* Editor Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-200 dark:border-cyan-500/10">
+        <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-200 dark:border-green-500/10">
           <div className="flex items-center space-x-3">
             {reactIcon && (
-              <div className="p-2 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg shadow-lg">
+              <div className="p-2 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg shadow-lg">
                 {React.createElement(reactIcon, { className: "text-lg text-white" })}
               </div>
             )}
-            <h2 className="text-lg font-bold text-gray-800 dark:text-cyan-400 tracking-wider">
+            <h2 className="text-lg font-bold text-gray-800 dark:text-green-400 tracking-wider">
               {language.charAt(0).toUpperCase() + language.slice(1)} Editor
             </h2>
           </div>
@@ -1242,7 +1242,7 @@ const CodeEditor = ({
             <button
               key={index}
               onClick={action}
-              className={`px-6 py-2.5 ${bgColor} text-white inline-flex items-center justify-center rounded-lg w-full sm:w-auto font-bold text-sm transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,255,0.3)] focus:outline-none focus:ring-2 focus:ring-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed tron-btn shadow-lg`}
+              className={`px-6 py-2.5 ${bgColor} text-white inline-flex items-center justify-center rounded-lg w-full sm:w-auto font-bold text-sm transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,255,0.3)] focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed hacker-btn shadow-lg`}
               disabled={disabled}
             >
               <span className="mr-2">{icon}</span>

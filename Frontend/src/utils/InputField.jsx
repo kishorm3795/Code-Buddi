@@ -53,13 +53,13 @@ const InputField = ({
           required={required}
           autoComplete={getAutoCompleteValue()}
           disabled={disabled}
-          className="w-full p-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00f0ff] dark:focus:ring-[#00f0ff]/50 disabled:bg-gray-200 dark:disabled:bg-gray-700/50 disabled:cursor-not-allowed transition-all duration-300 backdrop-blur-sm"
+          className="w-full p-3 bg-gray-50/50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00ff00] dark:focus:ring-[#00ff00]/50 disabled:bg-gray-200 dark:disabled:bg-gray-700/50 disabled:cursor-not-allowed transition-all duration-300 backdrop-blur-sm"
         />
 
         {isPasswordField && (
           <button
             type="button"
-            className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-[#00f0ff] hover:text-[#00d4ff] disabled:cursor-not-allowed font-mono text-xs uppercase tracking-tighter"
+            className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-[#00ff00] hover:text-[#00cc00] disabled:cursor-not-allowed font-mono text-xs uppercase tracking-tighter"
             onClick={onTogglePassword}
             disabled={disabled}
           >

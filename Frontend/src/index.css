@@ -1,24 +1,24 @@
-/* Google Fonts - Tron Legacy Inspired */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Google Fonts - Hacker Mode Inspired */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Fira+Code:wght@300..700&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 
 @import "tailwindcss";
 @plugin "tailwindcss-motion";
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Tron Legacy Color Variables */
+/* Hacker Mode Color Variables */
 :root {
-  --tron-cyan: #00ffff;
-  --tron-cyan-dim: #00c4d4;
-  --tron-blue: #00ccff;
-  --tron-dark: #0a0a0a;
-  --tron-gray: #1a1a2e;
-  --tron-surface: #0f172a;
-  --tron-card: #1e293b;
-  --tron-orange: #ff6b35;
-  --tron-green: #39ff14;
-  --tron-red: #ff0055;
-  --tron-purple: #bf00ff;
-  --tron-gold: #ffd700;
+  --hacker-green: #00ff00;
+  --hacker-green-dim: #00cc00;
+  --hacker-blue: #00ccff;
+  --hacker-dark: #0a0a0a;
+  --hacker-gray: #1a1a2e;
+  --hacker-surface: #0f172a;
+  --hacker-card: #1e293b;
+  --hacker-orange: #ff6b35;
+  --hacker-green: #39ff14;
+  --hacker-red: #ff0055;
+  --hacker-purple: #bf00ff;
+  --hacker-gold: #ffd700;
 }
 
 /* Dark Mode Variables */
@@ -45,15 +45,15 @@
 
 /* Base Styles */
 body {
-  font-family: 'Rajdhani', sans-serif;
+  font-family: 'Fira Code', sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   overflow-x: hidden;
 }
 
-/* Tron Legacy Typography */
+/* Hacker Mode Typography */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Share Tech Mono', sans-serif;
   letter-spacing: 0.05em;
 }
 
@@ -62,16 +62,16 @@ code, pre, .font-mono {
 }
 
 /* ============================================
-   TRON ADVANCED EFFECTS
+   HACKER ADVANCED EFFECTS
    ============================================ */
 
 /* Holographic Grid Background */
-.tron-grid-bg {
+.hacker-grid-bg {
   background-image: 
-    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+    linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(0, 255, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 0, 0.02) 1px, transparent 1px);
   background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
   animation: grid-move 20s linear infinite;
 }
@@ -82,12 +82,12 @@ code, pre, .font-mono {
 }
 
 /* Perspective Grid Floor */
-.tron-grid-floor {
+.hacker-grid-floor {
   perspective: 500px;
   overflow: hidden;
 }
 
-.tron-grid-floor::before {
+.hacker-grid-floor::before {
   content: '';
   position: absolute;
   bottom: -50%;
@@ -95,8 +95,8 @@ code, pre, .font-mono {
   width: 200%;
   height: 100%;
   background: 
-    linear-gradient(transparent 0%, rgba(0, 240, 255, 0.1) 2%, transparent 4%),
-    linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.1) 2%, transparent 4%);
+    linear-gradient(transparent 0%, rgba(0, 255, 0, 0.1) 2%, transparent 4%),
+    linear-gradient(90deg, transparent 0%, rgba(0, 255, 0, 0.1) 2%, transparent 4%);
   background-size: 100px 100px;
   transform: rotateX(60deg);
   animation: grid-floor-move 10s linear infinite;
@@ -108,66 +108,66 @@ code, pre, .font-mono {
 }
 
 /* Animated Glow Effects */
-.tron-glow {
-  box-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan), 0 0 30px rgba(0, 240, 255, 0.3);
+.hacker-glow {
+  box-shadow: 0 0 10px var(--hacker-green), 0 0 20px var(--hacker-green), 0 0 30px rgba(0, 255, 0, 0.3);
 }
 
-.tron-glow-sm {
-  box-shadow: 0 0 5px var(--tron-cyan), 0 0 10px var(--tron-cyan);
+.hacker-glow-sm {
+  box-shadow: 0 0 5px var(--hacker-green), 0 0 10px var(--hacker-green);
 }
 
-.tron-glow-text {
-  text-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan), 0 0 30px rgba(0, 240, 255, 0.5);
+.hacker-glow-text {
+  text-shadow: 0 0 10px var(--hacker-green), 0 0 20px var(--hacker-green), 0 0 30px rgba(0, 255, 0, 0.5);
 }
 
-.tron-glow-orange {
-  box-shadow: 0 0 10px var(--tron-orange), 0 0 20px var(--tron-orange);
+.hacker-glow-orange {
+  box-shadow: 0 0 10px var(--hacker-orange), 0 0 20px var(--hacker-orange);
 }
 
-.tron-glow-green {
-  box-shadow: 0 0 10px var(--tron-green), 0 0 20px var(--tron-green);
+.hacker-glow-green {
+  box-shadow: 0 0 10px var(--hacker-green), 0 0 20px var(--hacker-green);
 }
 
-.tron-glow-red {
-  box-shadow: 0 0 10px var(--tron-red), 0 0 20px var(--tron-red);
+.hacker-glow-red {
+  box-shadow: 0 0 10px var(--hacker-red), 0 0 20px var(--hacker-red);
 }
 
 /* Border Effects */
-.tron-border {
-  border: 2px solid var(--tron-cyan);
-  box-shadow: 0 0 10px var(--tron-cyan), inset 0 0 10px rgba(0, 240, 255, 0.1);
+.hacker-border {
+  border: 2px solid var(--hacker-green);
+  box-shadow: 0 0 10px var(--hacker-green), inset 0 0 10px rgba(0, 255, 0, 0.1);
 }
 
-.tron-border-sm {
-  border: 1px solid var(--tron-cyan);
-  box-shadow: 0 0 5px var(--tron-cyan);
+.hacker-border-sm {
+  border: 1px solid var(--hacker-green);
+  box-shadow: 0 0 5px var(--hacker-green);
 }
 
-.tron-border-glow {
+.hacker-border-glow {
   border: 2px solid transparent;
-  background: linear-gradient(var(--tron-cyan), var(--tron-cyan)) border-box;
+  background: linear-gradient(var(--hacker-green), var(--hacker-green)) border-box;
   mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
 }
 
 /* Advanced Glow Ring with Animation */
-.tron-ring {
+.hacker-ring {
   position: relative;
 }
 
-.tron-ring::before {
+.hacker-ring::before {
   content: '';
   position: absolute;
   inset: -3px;
-  background: conic-gradient(from 0deg, var(--tron-cyan), var(--tron-blue), var(--tron-purple), var(--tron-cyan));
+  background: conic-gradient(from 0deg, var(--hacker-green), var(--hacker-blue), var(--hacker-purple), var(--hacker-green));
   border-radius: inherit;
   z-index: -1;
-  animation: tron-rotate 4s linear infinite;
+  animation: hacker-rotate 4s linear infinite;
   opacity: 0.7;
 }
 
-.tron-ring::after {
+.hacker-ring::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -176,52 +176,52 @@ code, pre, .font-mono {
   z-index: 0;
 }
 
-.tron-ring > * {
+.hacker-ring > * {
   position: relative;
   z-index: 1;
 }
 
-@keyframes tron-rotate {
+@keyframes hacker-rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
 /* Pulse Animation */
-.tron-pulse {
-  animation: tron-pulse 2s ease-in-out infinite;
+.hacker-pulse {
+  animation: hacker-pulse 2s ease-in-out infinite;
 }
 
-@keyframes tron-pulse {
+@keyframes hacker-pulse {
   0%, 100% { 
-    box-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan);
+    box-shadow: 0 0 10px var(--hacker-green), 0 0 20px var(--hacker-green);
   }
   50% { 
-    box-shadow: 0 0 20px var(--tron-cyan), 0 0 40px var(--tron-cyan), 0 0 60px rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 20px var(--hacker-green), 0 0 40px var(--hacker-green), 0 0 60px rgba(0, 255, 0, 0.4);
   }
 }
 
 /* Text Gradient */
-.tron-text-gradient {
-  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue), var(--tron-purple));
+.hacker-text-gradient {
+  background: linear-gradient(135deg, var(--hacker-green), var(--hacker-blue), var(--hacker-purple));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 /* Glassmorphism */
-.tron-glass {
+.hacker-glass {
   background: rgba(15, 23, 42, 0.7);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.1);
 }
 
 /* Scanline Effect */
-.tron-scanlines {
+.hacker-scanlines {
   position: relative;
   overflow: hidden;
 }
 
-.tron-scanlines::before {
+.hacker-scanlines::before {
   content: '';
   position: absolute;
   top: 0;
@@ -243,8 +243,8 @@ code, pre, .font-mono {
    BUTTON STYLES
    ============================================ */
 
-.tron-btn {
-  font-family: 'Orbitron', sans-serif;
+.hacker-btn {
+  font-family: 'Share Tech Mono', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   transition: all 0.3s ease;
@@ -252,63 +252,63 @@ code, pre, .font-mono {
   overflow: hidden;
 }
 
-.tron-btn::before {
+.hacker-btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
   transition: left 0.5s ease;
 }
 
-.tron-btn:hover::before {
+.hacker-btn:hover::before {
   left: 100%;
 }
 
-.tron-btn-primary {
-  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue));
+.hacker-btn-primary {
+  background: linear-gradient(135deg, var(--hacker-green), var(--hacker-blue));
   color: #000;
   border: none;
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
 }
 
-.tron-btn-primary:hover {
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.5), 0 0 60px rgba(0, 240, 255, 0.3);
+.hacker-btn-primary:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.5), 0 0 60px rgba(0, 255, 0, 0.3);
   transform: translateY(-2px);
 }
 
-.tron-btn-secondary {
+.hacker-btn-secondary {
   background: transparent;
-  color: var(--tron-cyan);
-  border: 2px solid var(--tron-cyan);
+  color: var(--hacker-green);
+  border: 2px solid var(--hacker-green);
 }
 
-.tron-btn-secondary:hover {
-  background: rgba(0, 240, 255, 0.1);
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+.hacker-btn-secondary:hover {
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
 }
 
 /* ============================================
    INPUT STYLES
    ============================================ */
 
-.tron-input {
-  font-family: 'Rajdhani', sans-serif;
+.hacker-input {
+  font-family: 'Fira Code', sans-serif;
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
   color: var(--text-primary);
   transition: all 0.3s ease;
 }
 
-.tron-input:focus {
-  border-color: var(--tron-cyan);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2), inset 0 0 5px rgba(0, 240, 255, 0.05);
+.hacker-input:focus {
+  border-color: var(--hacker-green);
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.2), inset 0 0 5px rgba(0, 255, 0, 0.05);
   outline: none;
 }
 
-.tron-input::placeholder {
+.hacker-input::placeholder {
   color: var(--text-muted);
 }
 
@@ -316,60 +316,60 @@ code, pre, .font-mono {
    CARD STYLES
    ============================================ */
 
-.tron-card {
+.hacker-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
-.tron-card:hover {
-  border-color: var(--tron-cyan);
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+.hacker-card:hover {
+  border-color: var(--hacker-green);
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.15);
 }
 
 /* ============================================
    LINK STYLES
    ============================================ */
 
-.tron-link {
-  color: var(--tron-cyan);
+.hacker-link {
+  color: var(--hacker-green);
   text-decoration: none;
   position: relative;
   transition: all 0.3s ease;
 }
 
-.tron-link::after {
+.hacker-link::after {
   content: '';
   position: absolute;
   bottom: -2px;
   left: 0;
   width: 0;
   height: 2px;
-  background: var(--tron-cyan);
-  box-shadow: 0 0 10px var(--tron-cyan);
+  background: var(--hacker-green);
+  box-shadow: 0 0 10px var(--hacker-green);
   transition: width 0.3s ease;
 }
 
-.tron-link:hover::after {
+.hacker-link:hover::after {
   width: 100%;
 }
 
-.tron-link:hover {
-  text-shadow: 0 0 10px var(--tron-cyan);
+.hacker-link:hover {
+  text-shadow: 0 0 10px var(--hacker-green);
 }
 
 /* ============================================
    LOADING SPINNER
    ============================================ */
 
-.tron-spinner {
+.hacker-spinner {
   border: 3px solid var(--bg-tertiary);
-  border-top: 3px solid var(--tron-cyan);
+  border-top: 3px solid var(--hacker-green);
   border-radius: 50%;
-  animation: tron-spin 1s linear infinite;
+  animation: hacker-spin 1s linear infinite;
 }
 
-@keyframes tron-spin {
+@keyframes hacker-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
@@ -378,9 +378,9 @@ code, pre, .font-mono {
    FOOTER STYLES
    ============================================ */
 
-.tron-footer {
-  background: linear-gradient(180deg, transparent, rgba(0, 240, 255, 0.05));
-  border-top: 1px solid rgba(0, 240, 255, 0.1);
+.hacker-footer {
+  background: linear-gradient(180deg, transparent, rgba(0, 255, 0, 0.05));
+  border-top: 1px solid rgba(0, 255, 0, 0.1);
 }
 
 /* ============================================
@@ -397,12 +397,12 @@ code, pre, .font-mono {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--tron-cyan);
+  background: var(--hacker-green);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--tron-blue);
+  background: var(--hacker-blue);
 }
 
 /* ============================================
@@ -410,8 +410,8 @@ code, pre, .font-mono {
    ============================================ */
 
 ::selection {
-  background: rgba(0, 240, 255, 0.3);
-  color: var(--tron-cyan);
+  background: rgba(0, 255, 0, 0.3);
+  color: var(--hacker-green);
 }
 
 /* ============================================
@@ -424,10 +424,10 @@ code, pre, .font-mono {
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 10px var(--tron-cyan), 0 0 20px var(--tron-cyan);
+    box-shadow: 0 0 10px var(--hacker-green), 0 0 20px var(--hacker-green);
   }
   to {
-    box-shadow: 0 0 20px var(--tron-cyan), 0 0 40px var(--tron-cyan), 0 0 60px rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 20px var(--hacker-green), 0 0 40px var(--hacker-green), 0 0 60px rgba(0, 255, 0, 0.4);
   }
 }
 
@@ -452,10 +452,10 @@ code, pre, .font-mono {
    HEADER LOGO ANIMATION
    ============================================ */
 
-.tron-logo {
-  font-family: 'Orbitron', sans-serif;
+.hacker-logo {
+  font-family: 'Share Tech Mono', sans-serif;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue));
+  background: linear-gradient(135deg, var(--hacker-green), var(--hacker-blue));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -464,14 +464,14 @@ code, pre, .font-mono {
   display: inline-block;
 }
 
-.tron-logo::after {
+.hacker-logo::after {
   content: 'BUDDI';
   position: absolute;
   left: 100%;
   top: 0;
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Share Tech Mono', sans-serif;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--tron-purple), var(--tron-orange));
+  background: linear-gradient(135deg, var(--hacker-purple), var(--hacker-orange));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -480,7 +480,7 @@ code, pre, .font-mono {
 }
 
 @media (max-width: 640px) {
-  .tron-logo::after {
+  .hacker-logo::after {
     display: none;
   }
 }
@@ -493,19 +493,19 @@ code, pre, .font-mono {
   background: var(--bg-secondary);
   color: var(--text-primary);
   color-scheme: dark;
-  border: 1px solid var(--tron-cyan);
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+  border: 1px solid var(--hacker-green);
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
 }
 
 .dark div:where(.swal2-container) div:where(.swal2-validation-message) {
-  background: rgba(0, 240, 255, 0.1);
-  color: var(--tron-cyan);
-  border: 1px solid var(--tron-cyan);
+  background: rgba(0, 255, 0, 0.1);
+  color: var(--hacker-green);
+  border: 1px solid var(--hacker-green);
 }
 
 .dark div:where(.swal2-container) .swal2-title {
-  color: var(--tron-cyan);
-  font-family: 'Orbitron', sans-serif;
+  color: var(--hacker-green);
+  font-family: 'Share Tech Mono', sans-serif;
 }
 
 .dark div:where(.swal2-container) .swal2-html-container {
@@ -514,31 +514,31 @@ code, pre, .font-mono {
 
 .dark div:where(.swal2-container) .swal2-confirm,
 .dark div:where(.swal2-container) .swal2-cancel {
-  background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue)) !important;
+  background: linear-gradient(135deg, var(--hacker-green), var(--hacker-blue)) !important;
   color: #000 !important;
-  font-family: 'Orbitron', sans-serif;
+  font-family: 'Share Tech Mono', sans-serif;
   border: none !important;
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.3) !important;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3) !important;
 }
 
 .dark div:where(.swal2-container) .swal2-confirm:hover,
 .dark div:where(.swal2-container) .swal2-cancel:hover {
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.5) !important;
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.5) !important;
 }
 
 .dark div:where(.swal2-container) .swal2-icon {
-  border-color: var(--tron-cyan);
-  color: var(--tron-cyan);
+  border-color: var(--hacker-green);
+  color: var(--hacker-green);
 }
 
 .dark div:where(.swal2-container) .swal2-icon.swal2-error {
-  border-color: var(--tron-red);
-  color: var(--tron-red);
+  border-color: var(--hacker-red);
+  color: var(--hacker-red);
 }
 
 .dark div:where(.swal2-container) .swal2-icon.swal2-success {
-  border-color: var(--tron-green);
-  color: var(--tron-green);
+  border-color: var(--hacker-green);
+  color: var(--hacker-green);
 }
 
 .dark div:where(.swal2-container) .swal2-input,
@@ -551,12 +551,12 @@ code, pre, .font-mono {
 
 .dark div:where(.swal2-container) .swal2-input:focus,
 .dark div:where(.swal2-container) .swal2-textarea:focus {
-  border-color: var(--tron-cyan);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+  border-color: var(--hacker-green);
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
 }
 
 .dark div:where(.swal2-container) .swal2-checkbox input {
-  accent-color: var(--tron-cyan);
+  accent-color: var(--hacker-green);
 }
 
 .dark div:where(.swal2-container) .swal2-radio-group label {
@@ -564,7 +564,7 @@ code, pre, .font-mono {
 }
 
 .dark div:where(.swal2-container) .swal2-radio-group input[type="radio"] {
-  accent-color: var(--tron-cyan);
+  accent-color: var(--hacker-green);
 }
 
 .grecaptcha-badge {
@@ -582,16 +582,16 @@ code, pre, .font-mono {
 }
 
 /* ============================================
-   NEW TRON ADVANCED EFFECTS FOR HOMEPAGE
+   NEW HACKER ADVANCED EFFECTS FOR HOMEPAGE
    ============================================ */
 
 /* Particle Background */
-.tron-particles {
+.hacker-particles {
   position: relative;
   overflow: hidden;
 }
 
-.tron-particles::before {
+.hacker-particles::before {
   content: '';
   position: absolute;
   top: -50%;
@@ -599,7 +599,7 @@ code, pre, .font-mono {
   width: 200%;
   height: 200%;
   background: 
-    radial-gradient(circle at 20% 30%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 20% 30%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(191, 0, 255, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
   animation: particles-pulse 8s ease-in-out infinite;
@@ -611,11 +611,11 @@ code, pre, .font-mono {
 }
 
 /* Glowing Orb */
-.tron-orb {
+.hacker-orb {
   position: relative;
 }
 
-.tron-orb::before {
+.hacker-orb::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -623,7 +623,7 @@ code, pre, .font-mono {
   width: 200%;
   height: 200%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(0, 240, 255, 0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0, 255, 0, 0.2) 0%, transparent 70%);
   animation: orb-pulse 4s ease-in-out infinite;
   z-index: -1;
 }
@@ -634,33 +634,33 @@ code, pre, .font-mono {
 }
 
 /* Advanced Card Hover Effect */
-.tron-card-advanced {
+.hacker-card-advanced {
   position: relative;
   overflow: hidden;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.tron-card-advanced::before {
+.hacker-card-advanced::before {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
   transition: left 0.5s ease;
 }
 
-.tron-card-advanced:hover::before {
+.hacker-card-advanced:hover::before {
   left: 100%;
 }
 
-.tron-card-advanced::after {
+.hacker-card-advanced::after {
   content: '';
   position: absolute;
   inset: 0;
   border: 2px solid transparent;
-  background: linear-gradient(var(--tron-cyan), var(--tron-blue)) border-box;
+  background: linear-gradient(var(--hacker-green), var(--hacker-blue)) border-box;
   mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;
@@ -668,25 +668,25 @@ code, pre, .font-mono {
   transition: opacity 0.3s ease;
 }
 
-.tron-card-advanced:hover::after {
+.hacker-card-advanced:hover::after {
   opacity: 1;
 }
 
-.tron-card-advanced:hover {
+.hacker-card-advanced:hover {
   transform: translateY(-8px) scale(1.03);
-  box-shadow: 0 0 50px rgba(0, 255, 255, 0.4), 0 0 20px rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 50px rgba(0, 255, 0, 0.4), 0 0 20px rgba(0, 255, 0, 0.2);
 }
 
 /* Holographic Text Effect */
-.tron-holographic {
+.hacker-holographic {
   background: linear-gradient(
     135deg,
-    var(--tron-cyan) 0%,
-    var(--tron-blue) 20%,
-    var(--tron-purple) 40%,
-    var(--tron-orange) 60%,
-    var(--tron-green) 80%,
-    var(--tron-cyan) 100%
+    var(--hacker-green) 0%,
+    var(--hacker-blue) 20%,
+    var(--hacker-purple) 40%,
+    var(--hacker-orange) 60%,
+    var(--hacker-green) 80%,
+    var(--hacker-green) 100%
   );
   background-size: 400% 400%;
   -webkit-background-clip: text;
@@ -702,12 +702,12 @@ code, pre, .font-mono {
 }
 
 /* Digital Rain Effect */
-.tron-digital-rain {
+.hacker-digital-rain {
   position: relative;
   overflow: hidden;
 }
 
-.tron-digital-rain::before {
+.hacker-digital-rain::before {
   content: '';
   position: absolute;
   top: 0;
@@ -718,8 +718,8 @@ code, pre, .font-mono {
     0deg,
     transparent 0px,
     transparent 40px,
-    rgba(0, 255, 255, 0.05) 40px,
-    rgba(0, 255, 255, 0.05) 41px
+    rgba(0, 255, 0, 0.05) 40px,
+    rgba(0, 255, 0, 0.05) 41px
   );
   background-size: 100% 80px;
   animation: digital-rain 4s linear infinite;
@@ -731,45 +731,45 @@ code, pre, .font-mono {
 }
 
 /* Neon Border Animation */
-.tron-neon-border {
+.hacker-neon-border {
   position: relative;
 }
 
-.tron-neon-border::before,
-.tron-neon-border::after {
+.hacker-neon-border::before,
+.hacker-neon-border::after {
   content: '';
   position: absolute;
   width: 20px;
   height: 20px;
-  border: 2px solid var(--tron-cyan);
+  border: 2px solid var(--hacker-green);
   transition: all 0.3s ease;
 }
 
-.tron-neon-border::before {
+.hacker-neon-border::before {
   top: -2px;
   left: -2px;
   border-right: none;
   border-bottom: none;
 }
 
-.tron-neon-border::after {
+.hacker-neon-border::after {
   bottom: -2px;
   right: -2px;
   border-left: none;
   border-top: none;
 }
 
-.tron-neon-border:hover::before,
-.tron-neon-border:hover::after {
+.hacker-neon-border:hover::before,
+.hacker-neon-border:hover::after {
   width: calc(100% + 4px);
   height: calc(100% + 4px);
 }
 
 /* Floating Grid Animation */
-.tron-floating-grid {
+.hacker-floating-grid {
   background-image: 
-    linear-gradient(rgba(0, 240, 255, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 240, 255, 0.1) 1px, transparent 1px);
+    linear-gradient(rgba(0, 255, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 0, 0.1) 1px, transparent 1px);
   background-size: 40px 40px;
   animation: floating-grid 15s linear infinite;
 }
@@ -780,50 +780,50 @@ code, pre, .font-mono {
 }
 
 /* Title Glow */
-.tron-title-glow {
+.hacker-title-glow {
   text-shadow: 
-    0 0 10px var(--tron-cyan),
-    0 0 20px var(--tron-cyan),
-    0 0 40px var(--tron-cyan),
-    0 0 80px var(--tron-cyan);
+    0 0 10px var(--hacker-green),
+    0 0 20px var(--hacker-green),
+    0 0 40px var(--hacker-green),
+    0 0 80px var(--hacker-green);
   animation: title-pulse 2s ease-in-out infinite;
 }
 
 @keyframes title-pulse {
   0%, 100% { 
     text-shadow: 
-      0 0 10px var(--tron-cyan),
-      0 0 20px var(--tron-cyan),
-      0 0 40px var(--tron-cyan),
-      0 0 80px var(--tron-cyan);
+      0 0 10px var(--hacker-green),
+      0 0 20px var(--hacker-green),
+      0 0 40px var(--hacker-green),
+      0 0 80px var(--hacker-green);
   }
   50% { 
     text-shadow: 
-      0 0 20px var(--tron-cyan),
-      0 0 40px var(--tron-cyan),
-      0 0 60px var(--tron-cyan),
-      0 0 100px var(--tron-cyan);
+      0 0 20px var(--hacker-green),
+      0 0 40px var(--hacker-green),
+      0 0 60px var(--hacker-green),
+      0 0 100px var(--hacker-green);
   }
 }
 
 /* Icon Glow Effect */
-.tron-icon-glow {
-  filter: drop-shadow(0 0 5px var(--tron-cyan));
+.hacker-icon-glow {
+  filter: drop-shadow(0 0 5px var(--hacker-green));
   transition: all 0.3s ease;
 }
 
-.tron-icon-glow:hover {
-  filter: drop-shadow(0 0 15px var(--tron-cyan));
+.hacker-icon-glow:hover {
+  filter: drop-shadow(0 0 15px var(--hacker-green));
   transform: scale(1.1);
 }
 
 /* Animated Background Lines */
-.tron-bg-lines {
+.hacker-bg-lines {
   position: relative;
   overflow: hidden;
 }
 
-.tron-bg-lines::before {
+.hacker-bg-lines::before {
   content: '';
   position: absolute;
   top: 0;
@@ -833,7 +833,7 @@ code, pre, .font-mono {
   background: 
     linear-gradient(90deg, 
       transparent 0%,
-      rgba(0, 240, 255, 0.03) 50%,
+      rgba(0, 255, 0, 0.03) 50%,
       transparent 100%
     );
   animation: bg-lines-move 3s linear infinite;
@@ -845,13 +845,13 @@ code, pre, .font-mono {
 }
 
 /* Glitch Effect for Title */
-.tron-glitch {
+.hacker-glitch {
   position: relative;
   animation: glitch-skew 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
 }
 
-.tron-glitch::before,
-.tron-glitch::after {
+.hacker-glitch::before,
+.hacker-glitch::after {
   content: attr(data-text);
   position: absolute;
   top: 0;
@@ -860,15 +860,15 @@ code, pre, .font-mono {
   height: 100%;
 }
 
-.tron-glitch::before {
+.hacker-glitch::before {
   animation: glitch-1 0.4s infinite linear alternate-reverse;
-  color: var(--tron-cyan);
+  color: var(--hacker-green);
   z-index: -1;
 }
 
-.tron-glitch::after {
+.hacker-glitch::after {
   animation: glitch-2 0.4s infinite linear alternate-reverse;
-  color: var(--tron-purple);
+  color: var(--hacker-purple);
   z-index: -2;
 }
 

@@ -298,8 +298,8 @@ const SharedLinks = () => {
                   onClick={handleRefresh}
                   disabled={isRefreshing}
                   title="Refresh"
-                  className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-cyan-50 dark:hover:bg-gray-700 hover:text-cyan-500 transition-all duration-200 ${
-                    isRefreshing ? "animate-spin text-cyan-500" : ""
+                  className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-green-50 dark:hover:bg-gray-700 hover:text-green-500 transition-all duration-200 ${
+                    isRefreshing ? "animate-spin text-green-500" : ""
                   }`}
                 >
                   <HiRefresh className="text-xl" />
@@ -362,7 +362,7 @@ const SharedLinks = () => {
               <button
                 onClick={handlePrev}
                 disabled={currentPage === 1}
-                className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center text-sm font-medium"
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center text-sm font-medium"
               >
                 <FiArrowLeft className="mr-2" />
                 Previous
@@ -370,7 +370,7 @@ const SharedLinks = () => {
               <button
                 onClick={handleNext}
                 disabled={currentPage * itemsPerPage >= sharedLinks.length}
-                className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center text-sm font-medium"
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center text-sm font-medium"
               >
                 Next
                 <FiArrowRight className="ml-2" />

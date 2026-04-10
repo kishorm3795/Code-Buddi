@@ -330,18 +330,18 @@ const Register = () => {
   }, [canResendOtp]);
 
   return (
-    <div className="flex justify-center items-center min-h-[80dvh] bg-gray-100 dark:bg-gray-950 md:min-h-[90dvh] relative overflow-hidden tron-grid-bg tron-scanlines">
+    <div className="flex justify-center items-center min-h-[80dvh] bg-gray-100 dark:bg-gray-950 md:min-h-[90dvh] relative overflow-hidden hacker-grid-bg hacker-scanlines">
       {/* Background Effects */}
-      <div className="absolute inset-0 tron-digital-rain opacity-10"></div>
+      <div className="absolute inset-0 hacker-digital-rain opacity-10"></div>
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-10 w-32 h-32 bg-[#bf00ff] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>
-        <div className="absolute bottom-10 left-10 w-40 h-40 bg-[#00f0ff] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-10 left-10 w-40 h-40 bg-[#00ff00] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>
       </div>
 
-      <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-8 rounded-lg shadow-2xl w-full max-w-md relative z-10 tron-card-advanced border border-cyan-500/30">
+      <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-8 rounded-lg shadow-2xl w-full max-w-md relative z-10 hacker-card-advanced border border-green-500/30">
         {/* Header */}
         <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold tron-text-gradient mb-2 font-['Orbitron']">
+          <h2 className="text-3xl font-bold hacker-text-gradient mb-2 font-['Share Tech Mono']">
             {isRegistered ? "Verify Email" : "CodeBuddi"}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">
@@ -350,14 +350,14 @@ const Register = () => {
         </div>
 
         {isRegistered && (
-          <div className="mt-4 p-4 mb-6 bg-[#00f0ff]/10 dark:bg-[#00f0ff]/5 border border-[#00f0ff]/30 rounded-md shadow-lg max-w-full sm:max-w-md mx-auto">
+          <div className="mt-4 p-4 mb-6 bg-[#00ff00]/10 dark:bg-[#00ff00]/5 border border-[#00ff00]/30 rounded-md shadow-lg max-w-full sm:max-w-md mx-auto">
             <div className="flex items-center">
-              <AiOutlineExclamationCircle className="mr-2 text-xl text-[#00f0ff]" />
+              <AiOutlineExclamationCircle className="mr-2 text-xl text-[#00ff00]" />
               <p className="text-sm text-justify flex-1 text-gray-700 dark:text-gray-300">
                 Please check your email{" "}
                 <span
                   title={formData.email}
-                  className="font-medium text-[#00f0ff] underline underline-offset-2"
+                  className="font-medium text-[#00ff00] underline underline-offset-2"
                 >
                   {maskEmail(formData.email)}
                 </span>{" "}
@@ -375,7 +375,7 @@ const Register = () => {
         {!otpSent ? (
           <>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="focus-within:tron-glow-sm rounded-lg transition-all duration-300">
+              <div className="focus-within:hacker-glow-sm rounded-lg transition-all duration-300">
                 <InputField
                   label="Username"
                   type="text"
@@ -387,7 +387,7 @@ const Register = () => {
                 />
               </div>
 
-              <div className="focus-within:tron-glow-sm rounded-lg transition-all duration-300">
+              <div className="focus-within:hacker-glow-sm rounded-lg transition-all duration-300">
                 <InputField
                   label="Email"
                   type="email"
@@ -399,7 +399,7 @@ const Register = () => {
                 />
               </div>
 
-              <div className="focus-within:tron-glow-sm rounded-lg transition-all duration-300">
+              <div className="focus-within:hacker-glow-sm rounded-lg transition-all duration-300">
                 <InputField
                   label="Password"
                   type={showPassword ? "text" : "password"}
@@ -421,7 +421,7 @@ const Register = () => {
 
               <button
                 type="submit"
-                className="w-full py-3 cursor-pointer text-sm bg-gradient-to-r from-[#00f0ff] to-[#00d4ff] text-gray-900 font-bold rounded-md hover:from-[#00d4ff] hover:to-[#00f0ff] focus:outline-none transition-all duration-300 font-['Orbitron'] tracking-wider shadow-lg shadow-[#00f0ff]/20 hover:shadow-[#00f0ff]/40 transform hover:scale-[1.02]"
+                className="w-full py-3 cursor-pointer text-sm bg-gradient-to-r from-[#00ff00] to-[#00cc00] text-gray-900 font-bold rounded-md hover:from-[#00cc00] hover:to-[#00ff00] focus:outline-none transition-all duration-300 font-['Share Tech Mono'] tracking-wider shadow-lg shadow-[#00ff00]/20 hover:shadow-[#00ff00]/40 transform hover:scale-[1.02]"
                 disabled={loading}
               >
                 {loading ? (
@@ -500,7 +500,7 @@ const Register = () => {
             <button
               type="submit"
               onClick={handleOtpSubmit}
-              className="w-full py-3 text-sm cursor-pointer bg-gradient-to-r from-[#00f0ff] to-[#00d4ff] text-gray-900 font-bold rounded-md hover:from-[#00d4ff] hover:to-[#00f0ff] focus:outline-none transition-all duration-300 font-['Orbitron'] tracking-wider shadow-lg shadow-[#00f0ff]/20 hover:shadow-[#00f0ff]/40 transform hover:scale-[1.02]"
+              className="w-full py-3 text-sm cursor-pointer bg-gradient-to-r from-[#00ff00] to-[#00cc00] text-gray-900 font-bold rounded-md hover:from-[#00cc00] hover:to-[#00ff00] focus:outline-none transition-all duration-300 font-['Share Tech Mono'] tracking-wider shadow-lg shadow-[#00ff00]/20 hover:shadow-[#00ff00]/40 transform hover:scale-[1.02]"
               disabled={otpLoading}
             >
               {otpLoading ? (
@@ -516,7 +516,7 @@ const Register = () => {
               <button
                 type="button"
                 onClick={handleResendOtp}
-                className="w-full text-sm cursor-pointer text-[#00f0ff] hover:text-[#00d4ff] focus:outline-none transition-all duration-300 font-mono"
+                className="w-full text-sm cursor-pointer text-[#00ff00] hover:text-[#00cc00] focus:outline-none transition-all duration-300 font-mono"
                 disabled={resendOtpLoading || !canResendOtp}
               >
                 {resendOtpLoading ? (
@@ -556,7 +556,7 @@ const Register = () => {
               Already on CodeBuddi?{" "}
               <button
                 onClick={() => navigate("/login")}
-                className="text-[#00f0ff] cursor-pointer hover:text-[#00d4ff] hover:underline decoration-[#00f0ff] underline-offset-4 transition-all font-mono"
+                className="text-[#00ff00] cursor-pointer hover:text-[#00cc00] hover:underline decoration-[#00ff00] underline-offset-4 transition-all font-mono"
               >
                 Login here
               </button>
@@ -565,10 +565,10 @@ const Register = () => {
         )}
 
         {/* Decorative Elements */}
-        <div className="absolute -top-2 -left-2 w-6 h-6 border-t-2 border-l-2 border-[#00f0ff]"></div>
-        <div className="absolute -top-2 -right-2 w-6 h-6 border-t-2 border-r-2 border-[#00f0ff]"></div>
-        <div className="absolute -bottom-2 -left-2 w-6 h-6 border-b-2 border-l-2 border-[#00f0ff]"></div>
-        <div className="absolute -bottom-2 -right-2 w-6 h-6 border-b-2 border-r-2 border-[#00f0ff]"></div>
+        <div className="absolute -top-2 -left-2 w-6 h-6 border-t-2 border-l-2 border-[#00ff00]"></div>
+        <div className="absolute -top-2 -right-2 w-6 h-6 border-t-2 border-r-2 border-[#00ff00]"></div>
+        <div className="absolute -bottom-2 -left-2 w-6 h-6 border-b-2 border-l-2 border-[#00ff00]"></div>
+        <div className="absolute -bottom-2 -right-2 w-6 h-6 border-b-2 border-r-2 border-[#00ff00]"></div>
       </div>
     </div>
   );

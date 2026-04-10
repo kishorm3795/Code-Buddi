@@ -136,7 +136,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       reverseButtons: true,
       allowOutsideClick: false,
       background: isDarkMode ? '#1e293b' : '#ffffff',
-      titleColor: isDarkMode ? '#00f0ff' : '#0f172a',
+      titleColor: isDarkMode ? '#00ff00' : '#0f172a',
     }).then((result) => {
       if (result.isConfirmed) {
         clearAuthState();
@@ -167,7 +167,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       {isLoading && (
         <div className="fixed inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm flex justify-center items-center z-50">
           <div className="flex items-center space-x-3 bg-white dark:bg-gray-800 px-6 py-4 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-            <FaSpinner className="text-2xl text-cyan-500 animate-spin" />
+            <FaSpinner className="text-2xl text-green-500 animate-spin" />
             <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
               Loading...
             </span>
@@ -175,7 +175,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         </div>
       )}
 
-      <header className="bg-white/70 dark:bg-gray-950/70 backdrop-blur-2xl border-b border-cyan-500/20 sticky top-0 z-50 transition-all duration-300">
+      <header className="bg-white/70 dark:bg-gray-950/70 backdrop-blur-2xl border-b border-green-500/20 sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -185,12 +185,12 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               className="flex items-center space-x-2 group relative"
             >
               <span
-                className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent group-hover:tron-glitch"
+                className="text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent group-hover:hacker-glitch"
                 data-text="CodeBuddi"
               >
                 CodeBuddi
               </span>
-              <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-cyan-400 group-hover:w-full transition-all duration-300 shadow-[0_0_10px_#00ffff]"></div>
+              <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-green-400 group-hover:w-full transition-all duration-300 shadow-[0_0_10px_#00ffff]"></div>
             </Link>
 
             {/* Desktop Navigation */}
@@ -199,7 +199,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 <>
                   <Link
                     to={`${baseUrl}/account/${username}`}
-                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-cyan-400 hover:tron-glow-text transition-all duration-300"
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-400 hover:hacker-glow-text transition-all duration-300"
                     title={username.trim()}
                     aria-label={`Go to ${formatUsername(username)}'s account`}
                   >
@@ -207,7 +207,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-red-400 hover:tron-glow-red transition-all duration-300 cursor-pointer"
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-red-400 hover:hacker-glow-red transition-all duration-300 cursor-pointer"
                     disabled={isLoading}
                   >
                     Logout
@@ -217,14 +217,14 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 <>
                   <Link
                     to={`${baseUrl}/login`}
-                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-cyan-400 hover:tron-glow-text transition-all duration-300"
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-400 hover:hacker-glow-text transition-all duration-300"
                     aria-label="Go to Login page"
                   >
                     Login
                   </Link>
                   <Link
                     to={`${baseUrl}/register`}
-                    className="px-5 py-2 text-sm font-bold text-gray-900 bg-cyan-400 rounded-md hover:bg-cyan-300 transition-all duration-300 shadow-[0_0_15px_rgba(0,255,255,0.4)] hover:shadow-[0_0_25px_rgba(0,255,255,0.6)] transform hover:-translate-y-0.5"
+                    className="px-5 py-2 text-sm font-bold text-gray-900 bg-green-400 rounded-md hover:bg-green-300 transition-all duration-300 shadow-[0_0_15px_rgba(0,255,255,0.4)] hover:shadow-[0_0_25px_rgba(0,255,255,0.6)] transform hover:-translate-y-0.5"
                     aria-label="Go to Register page"
                   >
                     Register
@@ -271,7 +271,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 <>
                   <Link
                     to={`${baseUrl}/account/${username}`}
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-cyan-600 dark:hover:text-cyan-400"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"
                     title={username.trim()}
                     aria-label={`Go to ${formatUsername(username)}'s account page`}
                     onClick={() => setIsDropdownOpen(false)}
@@ -284,7 +284,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                       handleLogout();
                       setIsDropdownOpen(false);
                     }}
-                    className="block w-full text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-cyan-600 dark:hover:text-cyan-400"
+                    className="block w-full text-left text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"
                     disabled={isLoading}
                   >
                     Logout
@@ -294,7 +294,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 <>
                   <Link
                     to="/login"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-cyan-600 dark:hover:text-cyan-400"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"
                     aria-label="Go to Login page"
                     onClick={() => setIsDropdownOpen(false)}
                   >
@@ -302,7 +302,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                   </Link>
                   <Link
                     to="/register"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-cyan-600 dark:hover:text-cyan-400"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"
                     aria-label="Go to Register page"
                     onClick={() => setIsDropdownOpen(false)}
                   >

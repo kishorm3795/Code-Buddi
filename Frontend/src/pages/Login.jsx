@@ -142,18 +142,18 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[80dvh] bg-gray-50 dark:bg-gray-950 px-4 relative overflow-hidden tron-grid-bg tron-scanlines">
+    <div className="flex items-center justify-center min-h-[80dvh] bg-gray-50 dark:bg-gray-950 px-4 relative overflow-hidden hacker-grid-bg hacker-scanlines">
       {/* Background Effects */}
-      <div className="absolute inset-0 tron-digital-rain opacity-10"></div>
+      <div className="absolute inset-0 hacker-digital-rain opacity-10"></div>
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-10 w-32 h-32 bg-[#bf00ff] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>
-        <div className="absolute bottom-10 left-10 w-40 h-40 bg-[#00f0ff] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-10 left-10 w-40 h-40 bg-[#00ff00] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>
       </div>
 
-      <div className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 relative tron-card-advanced border border-cyan-500/30">
+      <div className="w-full max-w-md bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-xl p-8 relative hacker-card-advanced border border-green-500/30">
         {/* Header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold tron-text-gradient mb-2 font-['Orbitron']">
+          <h2 className="text-3xl font-bold hacker-text-gradient mb-2 font-['Share Tech Mono']">
             Welcome Back
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
@@ -162,7 +162,7 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="focus-within:tron-glow-sm rounded-lg transition-all duration-300">
+          <div className="focus-within:hacker-glow-sm rounded-lg transition-all duration-300">
             <InputField
               label="Email"
               type="email"
@@ -174,7 +174,7 @@ const Login = () => {
             />
           </div>
 
-          <div className="focus-within:tron-glow-sm rounded-lg transition-all duration-300">
+          <div className="focus-within:hacker-glow-sm rounded-lg transition-all duration-300">
             <InputField
               label="Password"
               type={showPassword ? "text" : "password"}
@@ -196,7 +196,7 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full py-3 cursor-pointer text-sm bg-gradient-to-r from-[#00f0ff] to-[#00d4ff] text-gray-900 font-bold rounded-md hover:from-[#00d4ff] hover:to-[#00f0ff] focus:outline-none transition-all duration-300 font-['Orbitron'] tracking-wider shadow-lg shadow-[#00f0ff]/20 hover:shadow-[#00f0ff]/40 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full py-3 cursor-pointer text-sm bg-gradient-to-r from-[#00ff00] to-[#00cc00] text-gray-900 font-bold rounded-md hover:from-[#00cc00] hover:to-[#00ff00] focus:outline-none transition-all duration-300 font-['Share Tech Mono'] tracking-wider shadow-lg shadow-[#00ff00]/20 hover:shadow-[#00ff00]/40 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
             disabled={loading}
           >
             {loading ? (
@@ -241,7 +241,7 @@ const Login = () => {
             Don't have an account?{" "}
             <button
               onClick={() => navigate("/register")}
-              className="text-[#00f0ff] font-medium hover:text-[#00d4ff] hover:underline decoration-[#00f0ff] underline-offset-4 transition-all font-mono"
+              className="text-[#00ff00] font-medium hover:text-[#00cc00] hover:underline decoration-[#00ff00] underline-offset-4 transition-all font-mono"
             >
               Sign up
             </button>
@@ -257,10 +257,10 @@ const Login = () => {
         </div>
 
         {/* Decorative Elements */}
-        <div className="absolute -top-2 -left-2 w-6 h-6 border-t-2 border-l-2 border-[#00f0ff]"></div>
-        <div className="absolute -top-2 -right-2 w-6 h-6 border-t-2 border-r-2 border-[#00f0ff]"></div>
-        <div className="absolute -bottom-2 -left-2 w-6 h-6 border-b-2 border-l-2 border-[#00f0ff]"></div>
-        <div className="absolute -bottom-2 -right-2 w-6 h-6 border-b-2 border-r-2 border-[#00f0ff]"></div>
+        <div className="absolute -top-2 -left-2 w-6 h-6 border-t-2 border-l-2 border-[#00ff00]"></div>
+        <div className="absolute -top-2 -right-2 w-6 h-6 border-t-2 border-r-2 border-[#00ff00]"></div>
+        <div className="absolute -bottom-2 -left-2 w-6 h-6 border-b-2 border-l-2 border-[#00ff00]"></div>
+        <div className="absolute -bottom-2 -right-2 w-6 h-6 border-b-2 border-r-2 border-[#00ff00]"></div>
       </div>
     </div>
   );
