@@ -1,8 +1,10 @@
+# Code-Buddi
+
 An online IDE with secure login functionality that allows users to run code, generate new code, refactor existing code, and share it with anyone.
 
 ![Homepage](Images/Homepage.png)
 
-![Lines of code](https://sloc.xyz/github/gladw-in/online-ide)
+![Lines of code](https://sloc.xyz/github/kishorm3795/Code-Buddi)
 
 ## Structure of a `.env` File
 
@@ -102,7 +104,7 @@ To set up and run:
 
 ## Clone the repository:
 ```
-git clone --depth 1 https://github.com/gladw-in/online-ide.git
+git clone --depth 1 https://github.com/kishorm3795/Code-Buddi.git
 ```
 
 ## Backend Login
@@ -284,6 +286,7 @@ npm run preview
 ### Register
 ![Register](Images/Register.png)
 
-## License
-
-You can use this under the MIT License. See [LICENSE](LICENSE) for more details.
+## License & Attribution
+ 
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.  
+Originally based on [gladw-in/online-ide](https://github.com/gladw-in/online-ide).
