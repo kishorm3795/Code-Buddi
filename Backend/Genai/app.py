@@ -27,8 +27,19 @@ CORS(app)
 
 load_dotenv()
 
-gemini_model = os.getenv("GEMINI_MODEL")
-gemini_model_1 = os.getenv("GEMINI_MODEL_1")
+is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+
+if is_production and not os.getenv("RECAPTCHA_SECRET_KEY"):
+    raise RuntimeError("FATAL: RECAPTCHA_SECRET_KEY must be configured in production.")
+
+if not os.getenv("GEMINI_API_KEY"):
+    if is_production:
+        raise RuntimeError("FATAL: GEMINI_API_KEY must be configured in production.")
+    else:
+        logging.warning("GEMINI_API_KEY is not set. Gemini API calls will fail.")
+
+gemini_model = os.getenv("GEMINI_MODEL") or "gemini-2.5-pro"
+gemini_model_1 = os.getenv("GEMINI_MODEL_1") or "gemini-2.5-flash"
 
 
 def get_generated_code(problem_description, language):
@@ -262,6 +273,7 @@ def generate_code():
 
 
 @app.route("/get-output", methods=["POST"])
+@token_required
 def get_output_api():
     logging.info("Received request for /get-output")
 

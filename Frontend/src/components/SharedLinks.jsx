@@ -112,14 +112,17 @@ const SharedLinks = () => {
           },
         });
 
+        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+
         const linkResponse = await apiFetch(
           `${BACKEND_API_URL}/api/user/sharedLink/${shareId}`,
           {
             method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
-
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
         const fileResponse = await apiFetch(
           `${TEMP_SHARE_API_URL}/file/${shareId}/delete`,

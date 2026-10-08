@@ -26,6 +26,18 @@ logging.basicConfig(
 app = Flask(__name__)
 CORS(app)
 
+is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+
+if is_production:
+    if not os.getenv("RECAPTCHA_SECRET_KEY"):
+        raise RuntimeError("FATAL: RECAPTCHA_SECRET_KEY must be configured in production.")
+    if not os.getenv("REDIS_HOST"):
+        raise RuntimeError("FATAL: REDIS_HOST must be configured in production.")
+    test_client = get_redis_connection()
+    if not test_client:
+        raise RuntimeError("FATAL: Failed to connect to Redis at startup in production.")
+    test_client.close()
+
 TEMP_FILE_URL = os.getenv("TEMP_FILE_URL")
 
 
@@ -88,11 +100,14 @@ def upload_file():
 
         file_id = str(uuid.uuid4())
 
+        user_id = request.user_data.get("userId") if hasattr(request, "user_data") and request.user_data else None
+
         file_data = {
             "title": title,
             "code": code,
             "language": language,
             "expiry_time": formatted_expiry_time,
+            "userId": user_id,
         }
 
         redis_client.set(
@@ -205,13 +220,31 @@ def delete_file(file_id):
         language, file_id_part = file_id.split("-", 1)
         file_key = f"file:{language}-{file_id_part}:data"
 
-        if redis_client.exists(file_key):
-            redis_client.delete(file_key)
-            logging.info(f"Successfully deleted file: {file_key}")
-            return jsonify({"message": "File deleted successfully"}), 200
-        else:
+        raw_data = redis_client.get(file_key)
+        if not raw_data:
             logging.warning(f"Attempted to delete a non-existent file: {file_key}")
             return jsonify({"error": "File not found"}), 404
+
+        try:
+            file_data = json.loads(raw_data)
+        except Exception:
+            file_data = {}
+
+        file_owner = file_data.get("userId")
+        current_user = request.user_data.get("userId") if hasattr(request, "user_data") and request.user_data else None
+
+        if file_owner and current_user and file_owner != current_user:
+            logging.warning(
+                f"Unauthorized delete attempt on file {file_key} by user {current_user} (owner: {file_owner})"
+            )
+            return (
+                jsonify({"error": "Forbidden: You are not authorized to delete this file"}),
+                403,
+            )
+
+        redis_client.delete(file_key)
+        logging.info(f"Successfully deleted file: {file_key}")
+        return jsonify({"message": "File deleted successfully"}), 200
 
     except redis.RedisError as e:
         logging.error(f"Redis error during file deletion: {e}")

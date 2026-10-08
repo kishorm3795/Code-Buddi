@@ -285,15 +285,15 @@ app.use(express.urlencoded({ extended: true, limit: '200kb' }));
 
 ## Remediation Progress Checklist
 
-- [ ] **Phase 1: P0 Critical Vulnerabilities**
-  - [ ] S1: Require JWT for `/api/runCode/count`
-  - [ ] S2: Authenticate and restrict `/api/sharedLink` deletion
-  - [ ] S3: Remove optional token fallback in `/api/user/sharedLink/:shareId`
-  - [ ] S4: Enforce owner check on Redis file deletion
-  - [ ] S5: Add `@token_required` to `/get-output`
-  - [ ] S6: Fail closed on missing reCAPTCHA secret in production
-  - [ ] S7: 6-digit numeric OTP with 5-attempt lockout
-  - [ ] S8: Integrate rate limiters across all microservices
+- [x] **Phase 1: P0 Critical Vulnerabilities**
+  - [x] S1: Require JWT for `/api/runCode/count`
+  - [x] S2: Authenticate and restrict `/api/sharedLink` deletion
+  - [x] S3: Remove optional token fallback in `/api/user/sharedLink/:shareId`
+  - [x] S4: Enforce owner check on Redis file deletion
+  - [x] S5: Add `@token_required` to `/get-output`
+  - [x] S6: Fail closed on missing reCAPTCHA secret in production
+  - [x] S7: 6-digit numeric OTP with 5-attempt lockout
+  - [x] S8: Integrate rate limiters across all microservices
 - [ ] **Phase 2: P1 High Vulnerabilities**
   - [ ] S9: Dynamic allowed origins in CORS
   - [ ] S10: Centralize JWT generation with mandatory expiration

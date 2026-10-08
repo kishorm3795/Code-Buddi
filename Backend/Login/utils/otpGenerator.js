@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 
 function generateOtp() {
-  return crypto.randomBytes(3).toString('hex');
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 module.exports = { generateOtp };

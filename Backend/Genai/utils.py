@@ -81,8 +81,13 @@ def validate_json(gemini_output):
 
 
 def is_human(recaptcha_token):
+    is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+
     if not RECAPTCHA_SECRET_KEY:
-        logging.info("reCAPTCHA check skipped: Secret key is missing.")
+        if is_production:
+            logging.error("reCAPTCHA check failed: Secret key is missing in production.")
+            return False
+        logging.info("reCAPTCHA check skipped: Secret key is missing in development.")
         return True
 
     if not recaptcha_token:

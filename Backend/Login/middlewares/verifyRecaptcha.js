@@ -4,8 +4,13 @@ const verifyRecaptcha = async (req, res, next) => {
 	const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 	const token = req.headers['x-recaptcha-token'];
 
-	// Skip reCAPTCHA verification if no secret key is configured (for development)
+	// Skip reCAPTCHA verification if no secret key is configured in dev
 	if (!secretKey || secretKey === '') {
+		if (process.env.NODE_ENV === 'production') {
+			return res.status(500).json({
+				msg: "reCAPTCHA configuration error: secret key missing in production."
+			});
+		}
 		return next();
 	}
 

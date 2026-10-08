@@ -213,22 +213,25 @@ const ShareEditor = ({ isDarkMode }) => {
   }, [shareId]);
 
   const deleteSharedLink = async (shareId) => {
-    const linkResponse = await apiFetch(`${BACKEND_API_URL}/api/sharedLink`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ shareId }),
-    });
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+    if (!token) {
+      return;
+    }
+    try {
+      const linkResponse = await apiFetch(`${BACKEND_API_URL}/api/sharedLink`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ shareId }),
+      });
 
-    const responseJson = await linkResponse.json();
-
-    if (!linkResponse.ok) {
-      throw new Error(
-        `Error deleting shared link: ${linkResponse.status} - ${responseJson.msg}`
-      );
-    } else {
-      sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+      if (linkResponse.ok) {
+        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+      }
+    } catch (err) {
+      console.warn("Could not delete expired shared link:", err);
     }
   };
 

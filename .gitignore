@@ -113,12 +113,10 @@ __pycache__/
 
 # Virtual environment
 venv/
+.venv/
 env/
 
 # Distribution / packaging
 .Python
 develop-eggs/
 egg-info/
-
-# Vercel
-vercel.json

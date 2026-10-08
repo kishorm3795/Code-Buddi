@@ -29,6 +29,28 @@ const { sendOtpEmail } = require('./smtp/sendMail')
 const { sendDelEmail } = require('./smtp/delEmail')
 const { sendPassChangeEmail } = require('./smtp/passChanged');
 const { sendUsernameChangeEmail } = require('./smtp/usernameChanged');
+const rateLimit = require('express-rate-limit');
+
+if (process.env.NODE_ENV === 'production' && !process.env.RECAPTCHA_SECRET_KEY) {
+	console.error('FATAL: RECAPTCHA_SECRET_KEY must be configured in production.');
+	process.exit(1);
+}
+
+const authLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	max: 30,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { msg: 'Too many requests from this IP, please try again after 15 minutes' },
+});
+
+const otpLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	max: 15,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { msg: 'Too many OTP attempts from this IP, please try again after 15 minutes' },
+});
 
 const app = express();
 
@@ -46,7 +68,7 @@ app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname, 'templates/index.html'));
 });
 
-app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
+app.post('/api/register', authLimiter, verifyRecaptcha, cleanExpired, async (req, res) => {
 	const username = req.body.username?.trim();
 	const email = req.body.email?.trim();
 	const password = req.body.password?.trim();
@@ -67,6 +89,7 @@ app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
 
 				existingEmail.otp = hashedOtp;
 				existingEmail.otpExpires = Date.now() + 10 * 60 * 1000;
+				existingEmail.otpAttempts = 0;
 				await existingEmail.save();
 
 				await sendOtpEmail(email, otp);
@@ -139,6 +162,7 @@ app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
 			password: hashedPassword,
 			otp: hashedOtp,
 			otpExpires: Date.now() + 10 * 60 * 1000,
+			otpAttempts: 0,
 			isEmailVerified: false,
 			lastLogin: null,
 			createdDate: Date.now(),
@@ -159,7 +183,7 @@ app.post('/api/register', verifyRecaptcha, cleanExpired, async (req, res) => {
 	}
 });
 
-app.post('/api/login', verifyRecaptcha, cleanExpired, async (req, res) => {
+app.post('/api/login', authLimiter, verifyRecaptcha, cleanExpired, async (req, res) => {
 	const email = req.body.email?.trim();
 	const password = req.body.password?.trim();
 
@@ -326,7 +350,7 @@ if (!token) {
   }
 });
 
-app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
+app.post('/api/verify-otp', otpLimiter, verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp,
@@ -376,17 +400,38 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
-		const isOtpValid = await bcrypt.compare(otp, user.otp);
-
-		if (!isOtpValid) {
-			return res.status(400).json({
-				msg: 'Invalid OTP',
+		if (user.otpAttempts >= 5) {
+			user.otp = null;
+			user.otpExpires = null;
+			user.otpAttempts = 0;
+			await user.save();
+			return res.status(429).json({
+				msg: 'Too many failed attempts. This OTP has been invalidated. Please request a new OTP.',
 			});
 		}
 
-		if (user.otpExpires < Date.now()) {
+		if (user.otpExpires && user.otpExpires < Date.now()) {
 			return res.status(400).json({
 				msg: 'OTP has expired',
+			});
+		}
+
+		const isOtpValid = user.otp ? await bcrypt.compare(otp, user.otp) : false;
+
+		if (!isOtpValid) {
+			user.otpAttempts = (user.otpAttempts || 0) + 1;
+			if (user.otpAttempts >= 5) {
+				user.otp = null;
+				user.otpExpires = null;
+				user.otpAttempts = 0;
+				await user.save();
+				return res.status(429).json({
+					msg: 'Too many failed attempts. This OTP has been invalidated. Please request a new OTP.',
+				});
+			}
+			await user.save();
+			return res.status(400).json({
+				msg: 'Invalid OTP',
 			});
 		}
 
@@ -399,6 +444,7 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 		user.isEmailVerified = true;
 		user.otp = null;
 		user.otpExpires = null;
+		user.otpAttempts = 0;
 		user.lastLogin = ISTDate;
 		user.createdDate = ISTDate;
 
@@ -407,7 +453,8 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 		const token = jwt.sign({
 			userId: user._id
 		}, process.env.JWT_SECRET, {
-			algorithm: 'HS512'
+			algorithm: 'HS512',
+			expiresIn: '7d',
 		});
 
 		res.status(200).json({
@@ -422,7 +469,7 @@ app.post('/api/verify-otp', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
+app.post('/api/resend-otp', otpLimiter, verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
@@ -445,8 +492,8 @@ app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
 		});
 
 		if (!user) {
-			return res.status(400).json({
-				msg: 'User not found',
+			return res.status(200).json({
+				msg: 'If this email is registered, an OTP has been sent',
 			});
 		}
 
@@ -473,6 +520,7 @@ app.post('/api/resend-otp', verifyRecaptcha, async (req, res) => {
 
 		user.otp = hashedOtp;
 		user.otpExpires = otpExpires;
+		user.otpAttempts = 0;
 		await user.save();
 
 		await sendOtpEmail(user.email, otp);
@@ -578,7 +626,7 @@ app.post('/api/check-email-exists', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
+app.post('/api/forgot-password', authLimiter, verifyRecaptcha, async (req, res) => {
 	const {
 		email
 	} = req.body;
@@ -591,8 +639,8 @@ app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
 		});
 
 		if (!user) {
-			return res.status(400).json({
-				msg: "User not found"
+			return res.status(200).json({
+				msg: "If this email is registered, an OTP has been sent"
 			});
 		}
 		
@@ -609,6 +657,7 @@ app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
 
 			user.otp = hashedOtp;
 			user.otpExpires = Date.now() + 10 * 60 * 1000;
+			user.otpAttempts = 0;
 			await user.save();
 
 			await sendOtpEmail(user.email, otp);
@@ -629,7 +678,7 @@ app.post('/api/forgot-password', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
+app.post('/api/reset-password', otpLimiter, verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp
@@ -660,16 +709,37 @@ app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
-		const isOtpValid = await bcrypt.compare(otp, user.otp);
-		if (!isOtpValid) {
-			return res.status(400).json({
-				msg: "Invalid OTP"
+		if (user.otpAttempts >= 5) {
+			user.otp = null;
+			user.otpExpires = null;
+			user.otpAttempts = 0;
+			await user.save();
+			return res.status(429).json({
+				msg: "Too many failed attempts. This OTP has been invalidated. Please request a new OTP."
 			});
 		}
 
-		if (user.otpExpires < Date.now()) {
+		if (user.otpExpires && user.otpExpires < Date.now()) {
 			return res.status(400).json({
 				msg: "OTP has expired"
+			});
+		}
+
+		const isOtpValid = user.otp ? await bcrypt.compare(otp, user.otp) : false;
+		if (!isOtpValid) {
+			user.otpAttempts = (user.otpAttempts || 0) + 1;
+			if (user.otpAttempts >= 5) {
+				user.otp = null;
+				user.otpExpires = null;
+				user.otpAttempts = 0;
+				await user.save();
+				return res.status(429).json({
+					msg: "Too many failed attempts. This OTP has been invalidated. Please request a new OTP."
+				});
+			}
+			await user.save();
+			return res.status(400).json({
+				msg: "Invalid OTP"
 			});
 		}
 
@@ -685,7 +755,7 @@ app.post('/api/reset-password', verifyRecaptcha, async (req, res) => {
 	}
 });
 
-app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
+app.post('/api/update-password', otpLimiter, verifyRecaptcha, async (req, res) => {
 	const {
 		email,
 		otp,
@@ -729,16 +799,37 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 			});
 		}
 
-		const isOtpValid = await bcrypt.compare(otp, user.otp);
-		if (!isOtpValid) {
-			return res.status(400).json({
-				msg: "Invalid OTP"
+		if (user.otpAttempts >= 5) {
+			user.otp = null;
+			user.otpExpires = null;
+			user.otpAttempts = 0;
+			await user.save();
+			return res.status(429).json({
+				msg: "Too many failed attempts. This OTP has been invalidated. Please request a new OTP."
 			});
 		}
 
-		if (user.otpExpires < Date.now()) {
+		if (user.otpExpires && user.otpExpires < Date.now()) {
 			return res.status(400).json({
 				msg: "OTP has expired"
+			});
+		}
+
+		const isOtpValid = user.otp ? await bcrypt.compare(otp, user.otp) : false;
+		if (!isOtpValid) {
+			user.otpAttempts = (user.otpAttempts || 0) + 1;
+			if (user.otpAttempts >= 5) {
+				user.otp = null;
+				user.otpExpires = null;
+				user.otpAttempts = 0;
+				await user.save();
+				return res.status(429).json({
+					msg: "Too many failed attempts. This OTP has been invalidated. Please request a new OTP."
+				});
+			}
+			await user.save();
+			return res.status(400).json({
+				msg: "Invalid OTP"
 			});
 		}
 
@@ -748,6 +839,7 @@ app.post('/api/update-password', verifyRecaptcha, async (req, res) => {
 		user.password = hashedPassword;
 		user.otp = null;
 		user.otpExpires = null;
+		user.otpAttempts = 0;
 		await user.save();
 
 		await sendPassChangeEmail(user.email);
@@ -1110,17 +1202,29 @@ app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	if (!token) {
+		return res.status(401).json({
+			msg: 'No token provided',
+		});
+	}
+
 	const {
-		username,
 		language
 	} = req.body;
+
+	if (!language) {
+		return res.status(400).json({
+			msg: 'No valid language provided',
+		});
+	}
 
 	try {
 		await checkAndConnectDB();
 
-		const user = await User.findOne({
-			username,
-		});
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
 		if (!user) {
 			return res.status(404).json({
@@ -1140,8 +1244,8 @@ app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
 		res.status(204).send();
 	} catch (err) {
 		console.error(err);
-		res.status(500).json({
-			msg: 'Server error',
+		res.status(401).json({
+			msg: 'Invalid or expired token',
 		});
 	}
 });
@@ -1350,6 +1454,14 @@ app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
 });
 
 app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+
+	if (!token) {
+		return res.status(401).json({
+			msg: 'No token provided',
+		});
+	}
+
 	const {
 		shareId
 	} = req.body;
@@ -1363,13 +1475,12 @@ app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
 	try {
 		await checkAndConnectDB();
 
-		const user = await User.findOne({
-			'sharedLinks.shareId': shareId,
-		});
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'Shared link not found',
+				msg: 'User not found',
 			});
 		}
 
@@ -1394,6 +1505,11 @@ app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
 		});
 	} catch (err) {
 		console.error(err);
+		if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+			return res.status(401).json({
+				msg: 'Invalid or expired token',
+			});
+		}
 		return res.status(500).json({
 			msg: 'Server error',
 		});
@@ -1406,23 +1522,21 @@ app.delete('/api/user/sharedLink/:shareId', verifyRecaptcha, async (req, res) =>
 	} = req.params;
 	const token = req.headers['authorization']?.split(' ')[1];
 
+	if (!token) {
+		return res.status(401).json({
+			msg: 'Authorization token required',
+		});
+	}
+
 	try {
 		await checkAndConnectDB();
 
-		let user;
-
-		if (token) {
-			const decoded = jwt.verify(token, process.env.JWT_SECRET);
-			user = await User.findById(decoded.userId);
-		} else {
-			user = await User.findOne({
-				'sharedLinks.shareId': shareId,
-			});
-		}
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId);
 
 		if (!user) {
 			return res.status(404).json({
-				msg: 'User or Shared link not found',
+				msg: 'User not found',
 			});
 		}
 
@@ -1444,7 +1558,7 @@ app.delete('/api/user/sharedLink/:shareId', verifyRecaptcha, async (req, res) =>
 		console.error(err);
 
 		if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-			return res.status(403).json({
+			return res.status(401).json({
 				msg: 'Invalid or expired token',
 			});
 		}

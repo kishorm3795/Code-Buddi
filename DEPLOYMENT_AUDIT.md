@@ -217,7 +217,7 @@ class JsonFormatter(logging.Formatter):
 ## Remediation Progress Checklist
 
 - [ ] **Phase 1: P0 Deployment Blockers**
-  - [ ] D1: Unignore `vercel.json` in `.gitignore` and add SPA rewrite rules
+  - [x] D1: Unignore `vercel.json` in `.gitignore` and add SPA rewrite rules
   - [ ] D2: Add `Dockerfile`s and `docker-compose.yml` for multi-container orchestration
 - [ ] **Phase 2: P1 Documentation & Configuration Isolation**
   - [ ] D3: Update `README.md` URLs and maintain proper MIT attribution

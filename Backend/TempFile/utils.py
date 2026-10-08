@@ -44,29 +44,45 @@ class MockRedis:
         pass
 
 def get_redis_connection():
-    try:
-        # Check if environment variables are set, otherwise use mock
-        if not os.getenv("REDIS_HOST"):
-            logging.info("Using Mock Redis (No REDIS_HOST configured)")
-            return MockRedis()
+    is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+    redis_host = os.getenv("REDIS_HOST")
 
+    if not redis_host:
+        if is_production:
+            logging.error("FATAL: REDIS_HOST must be configured in production.")
+            return None
+        logging.info("Using Mock Redis (No REDIS_HOST configured - Development only)")
+        return MockRedis()
+
+    try:
+        use_ssl = os.getenv("REDIS_SSL", "false").lower() in ("true", "1", "yes")
         redis_client = redis.StrictRedis(
-            host=os.getenv("REDIS_HOST"),
+            host=redis_host,
             port=int(os.getenv("REDIS_PORT") or 6379),
-            password=os.getenv("REDIS_PASSWORD"),
-            ssl=False, # Changed to False for local dev
+            password=os.getenv("REDIS_PASSWORD") or None,
+            ssl=use_ssl,
+            socket_timeout=5,
+            socket_connect_timeout=5,
         )
         redis_client.ping()
         logging.info("Successfully connected to Redis.")
         return redis_client
-    except (redis.ConnectionError, Exception) as e:
-        logging.warning(f"Failed to connect to Redis, falling back to Mock Redis: {e}")
+    except (redis.ConnectionError, redis.TimeoutError, Exception) as e:
+        if is_production:
+            logging.error(f"Failed to connect to Redis at {redis_host}: {e}")
+            return None
+        logging.warning(f"Failed to connect to Redis, falling back to Mock Redis in dev: {e}")
         return MockRedis()
 
 
 def is_human(recaptcha_token):
+    is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+
     if not RECAPTCHA_SECRET_KEY:
-        logging.info("reCAPTCHA check skipped: Secret key is missing.")
+        if is_production:
+            logging.error("reCAPTCHA check failed: Secret key is missing in production.")
+            return False
+        logging.info("reCAPTCHA check skipped: Secret key is missing in development.")
         return True
 
     if not recaptcha_token:

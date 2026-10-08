@@ -262,10 +262,10 @@ flask-limiter==3.10.1
 
 ## Remediation Progress Checklist
 
-- [ ] **Phase 1: P0 Critical Reliability**
-  - [ ] R1: Remove silent MockRedis in production; configure TLS (`REDIS_SSL=true`)
-  - [ ] R2: Uncomment `GEMINI_API_KEY` in `.env.example` & add startup validation
-  - [ ] R3: Update Gemini model references to active supported versions
+- [x] **Phase 1: P0 Critical Reliability**
+  - [x] R1: Remove silent MockRedis in production; configure TLS (`REDIS_SSL=true`)
+  - [x] R2: Uncomment `GEMINI_API_KEY` in `.env.example` & add startup validation
+  - [x] R3: Update Gemini model references to active supported versions
   - [ ] R4: Set up Gunicorn with gthread workers for Flask services
 - [ ] **Phase 2: P1 Database & Streaming Architecture**
   - [ ] R5: Connect MongoDB once on startup with timeout & add `/health`

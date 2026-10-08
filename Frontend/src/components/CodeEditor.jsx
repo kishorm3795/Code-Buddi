@@ -168,11 +168,17 @@ const CodeEditor = ({
     setisDownloadBtnPressed(true);
 
     try {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await apiFetch(apiEndpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           language: language,
           code: code,
@@ -831,9 +837,9 @@ const CodeEditor = ({
   };
 
   const getRunCodeCount = async (language) => {
-    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
+    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
 
-    if (!username) {
+    if (!token) {
       return;
     }
 
@@ -841,8 +847,9 @@ const CodeEditor = ({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ username, language }),
+      body: JSON.stringify({ language }),
     });
 
     if (!response.ok) {
