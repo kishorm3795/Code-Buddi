@@ -1,9 +1,10 @@
 const express = require('express');
+const helmet = require('helmet');
+const mongoose = require('mongoose');
 const path = require('node:path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -19,7 +20,8 @@ const {
 
 const { verifyRecaptcha } = require('./middlewares/verifyRecaptcha');
 
-const { checkAndConnectDB } = require('./config/db');
+const { connectDB, checkAndConnectDB } = require('./config/db');
+const { generateToken } = require('./utils/token');
 const { generateOtp } = require('./utils/otpGenerator');
 const { logUserAction } = require('./utils/useLogger')
 const { cleanExpired } = require('./middlewares/cleanExpired');
@@ -55,14 +57,41 @@ const otpLimiter = rateLimit({
 const app = express();
 
 app.set('trust proxy', 1);
+app.use(helmet());
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(bodyParser.json({limit:'200kb'}));
+app.use(express.json({ limit: '200kb' }));
 
 const PORT = process.env.PORT || 5003;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+app.get('/health', (req, res) => {
+	const isConnected = mongoose.connection.readyState === 1;
+	res.status(isConnected ? 200 : 503).json({
+		status: isConnected ? 'healthy' : 'unhealthy',
+		database: isConnected ? 'connected' : 'disconnected',
+		timestamp: new Date().toISOString(),
+	});
+});
+
+app.get('/api/verify-token', async (req, res) => {
+	const token = req.headers['authorization']?.split(' ')[1];
+	if (!token) {
+		return res.status(401).json({ valid: false, msg: 'No token provided' });
+	}
+
+	try {
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const user = await User.findById(decoded.userId).select('_id isEmailVerified');
+		if (!user || !user.isEmailVerified) {
+			return res.status(401).json({ valid: false, msg: 'User account not found or unverified' });
+		}
+		return res.status(200).json({ valid: true, userId: user._id });
+	} catch (err) {
+		return res.status(401).json({ valid: false, msg: 'Invalid or expired token' });
+	}
+});
 
 app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname, 'templates/index.html'));
@@ -98,8 +127,8 @@ app.post('/api/register', authLimiter, verifyRecaptcha, cleanExpired, async (req
 					msg: 'Email not verified.',
 				});
 			} else {
-				return res.status(400).json({
-					msg: 'Email already in use',
+				return res.status(200).json({
+					msg: 'If this email is eligible for registration, a verification code has been sent.',
 				});
 			}
 		}
@@ -244,14 +273,7 @@ app.post('/api/login', authLimiter, verifyRecaptcha, cleanExpired, async (req, r
 
 		await user.save();
 
-		const token = jwt.sign({
-				userId: user._id,
-			},
-			process.env.JWT_SECRET, {
-				algorithm: 'HS512',
-				expiresIn: '1w',
-			}
-		);
+		const token = generateToken(user._id);
 
 		res.json({
 			token,
@@ -284,7 +306,13 @@ if (!token) {
     });
 
     const payload = ticket.getPayload();
-    const { email, name, sub: googleId } = payload;
+    const { email, name, sub: googleId, email_verified } = payload;
+
+    if (!email_verified) {
+      return res.status(403).json({
+        message: 'Google account email is not verified.',
+      });
+    }
 
     let user = await User.findOne({ email: email });
 
@@ -315,7 +343,7 @@ if (!token) {
         username: finalUsername,
         email: email,
         googleId: googleId,
-		isEmailVerified: !!googleId,
+		isEmailVerified: true,
       });
 
       await user.save();
@@ -329,14 +357,7 @@ if (!token) {
       await user.save();
     }
 
-	const appToken = jwt.sign({
-			userId: user._id,
-		},
-		process.env.JWT_SECRET, {
-			algorithm: 'HS512',
-			expiresIn: '1w',
-		}
-	);
+	const appToken = generateToken(user._id);
     
     res.status(200).json({
       message: 'Authentication successful!',
@@ -450,12 +471,7 @@ app.post('/api/verify-otp', otpLimiter, verifyRecaptcha, async (req, res) => {
 
 		await user.save();
 
-		const token = jwt.sign({
-			userId: user._id
-		}, process.env.JWT_SECRET, {
-			algorithm: 'HS512',
-			expiresIn: '7d',
-		});
+		const token = generateToken(user._id);
 
 		res.status(200).json({
 			token,
@@ -604,8 +620,8 @@ app.post('/api/check-email-exists', verifyRecaptcha, async (req, res) => {
 		});
 
 		if (!user) {
-			return res.status(400).json({
-				msg: "User not found"
+			return res.status(200).json({
+				msg: "Email check processed"
 			});
 		}
 
@@ -616,7 +632,7 @@ app.post('/api/check-email-exists', verifyRecaptcha, async (req, res) => {
 		}
 
 		res.status(200).json({
-			msg: "Email exists"
+			msg: "Email check processed"
 		});
 	} catch (err) {
 		console.error(err);
@@ -631,6 +647,10 @@ app.post('/api/forgot-password', authLimiter, verifyRecaptcha, async (req, res) 
 		email
 	} = req.body;
 
+	if (!email || !emailRegex.test(email)) {
+		return res.status(400).json({ msg: "Valid email is required" });
+	}
+
 	try {
 		await checkAndConnectDB();
 
@@ -640,13 +660,13 @@ app.post('/api/forgot-password', authLimiter, verifyRecaptcha, async (req, res) 
 
 		if (!user) {
 			return res.status(200).json({
-				msg: "If this email is registered, an OTP has been sent"
+				msg: "If this email is registered, a password reset code has been sent."
 			});
 		}
 		
 		if (user.googleId && !user.password) {
-			return res.status(403).json({
-				msg: "Login with Google"
+			return res.status(200).json({
+				msg: "If this email is registered, a password reset code has been sent."
 			});
 		}
 
@@ -661,15 +681,11 @@ app.post('/api/forgot-password', authLimiter, verifyRecaptcha, async (req, res) 
 			await user.save();
 
 			await sendOtpEmail(user.email, otp);
-
-			return res.status(200).json({
-				msg: "OTP sent to your email"
-			});
-		} else {
-			return res.status(400).json({
-				msg: "Email not verified"
-			});
 		}
+
+		return res.status(200).json({
+			msg: "If this email is registered, a password reset code has been sent."
+		});
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({
@@ -1082,13 +1098,7 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 
 		await sendPassChangeEmail(user.email)
 
-		const newToken = jwt.sign({
-				userId: user._id,
-			},
-			process.env.JWT_SECRET, {
-				algorithm: 'HS512',
-			}
-		);
+		const newToken = generateToken(user._id);
 
 		res.json({
 			msg: 'Password updated successfully',
@@ -1568,5 +1578,13 @@ app.delete('/api/user/sharedLink/:shareId', verifyRecaptcha, async (req, res) =>
 		});
 	}
 });
+async function startServer() {
+	await connectDB();
+	app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+if (process.env.NODE_ENV !== 'test') {
+	startServer();
+}
+
+module.exports = app;

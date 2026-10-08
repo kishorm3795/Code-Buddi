@@ -1,19 +1,28 @@
 const mongoose = require('mongoose');
-const MONGO_URI = process.env.MONGO_URI;
 
-async function checkAndConnectDB() {
+async function connectDB() {
+  const MONGO_URI = process.env.MONGO_URI;
   if (!MONGO_URI) {
-    console.warn('MONGO_URI is not defined. Skipping MongoDB connection.');
-    return;
+    console.error('FATAL: MONGO_URI environment variable is not defined.');
+    process.exit(1);
   }
-  if (mongoose.connection.readyState === 0) {
-    try {
-      await mongoose.connect(MONGO_URI);
-      console.log('MongoDB connected');
-    } catch (err) {
-      console.error('Error connecting to MongoDB:', err.message);
-    }
+
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    console.log('MongoDB connected successfully');
+  } catch (err) {
+    console.error('FATAL: Error connecting to MongoDB:', err.message);
+    process.exit(1);
   }
 }
 
-module.exports = { checkAndConnectDB };
+async function checkAndConnectDB() {
+  if (mongoose.connection.readyState === 0) {
+    await connectDB();
+  }
+}
+
+module.exports = { connectDB, checkAndConnectDB };

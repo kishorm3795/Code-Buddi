@@ -267,12 +267,12 @@ flask-limiter==3.10.1
   - [x] R2: Uncomment `GEMINI_API_KEY` in `.env.example` & add startup validation
   - [x] R3: Update Gemini model references to active supported versions
   - [ ] R4: Set up Gunicorn with gthread workers for Flask services
-- [ ] **Phase 2: P1 Database & Streaming Architecture**
-  - [ ] R5: Connect MongoDB once on startup with timeout & add `/health`
-  - [ ] R6: Replace per-request `cleanExpired` with MongoDB TTL index
-  - [ ] R7: Update deprecated Mongoose hooks & DRY language schemas
-  - [ ] R8: Consolidate Genai streaming functions into a reusable helper
-  - [ ] R9: Clarify AI-simulated code execution in UI or integrate sandbox
+- [x] **Phase 2: P1 Database & Streaming Architecture**
+  - [x] R5: Connect MongoDB once on startup with timeout & add `/health`
+  - [x] R6: Replace per-request `cleanExpired` with MongoDB TTL index
+  - [x] R7: Update deprecated Mongoose hooks & DRY language schemas
+  - [x] R8: Consolidate Genai streaming functions into a reusable helper
+  - [x] R9: Clarify AI-simulated code execution in UI or integrate sandbox
 - [ ] **Phase 3: P2 Dependency & Code Health**
   - [ ] R10: Pin Python requirements and add `gunicorn`
   - [ ] R11: Extract `useAuth`, `useGenai`, `useSharedLinks` hooks in Frontend

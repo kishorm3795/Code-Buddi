@@ -1,5 +1,28 @@
 const mongoose = require('mongoose');
-const { logUserAction } = require('../utils/useLogger')
+const { logUserAction } = require('../utils/useLogger');
+
+const DEFAULT_LANGUAGE_COUNTS = {
+    py: 0,
+    js: 0,
+    HtmlJsCss: 0,
+    c: 0,
+    cpp: 0,
+    java: 0,
+    cs: 0,
+    rust: 0,
+    go: 0,
+    sql: 0,
+    mongodb: 0,
+    swift: 0,
+    ruby: 0,
+    ts: 0,
+    dart: 0,
+    kt: 0,
+    perl: 0,
+    scala: 0,
+    julia: 0,
+    verilog: 0,
+};
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -18,10 +41,10 @@ const userSchema = new mongoose.Schema({
         match: [/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/, 'Please provide a valid email address'],
     },
     googleId: {
-		type: String,
-		unique: true,
-		sparse: true
-	},
+        type: String,
+        unique: true,
+        sparse: true,
+    },
     password: {
         type: String,
     },
@@ -52,87 +75,23 @@ const userSchema = new mongoose.Schema({
     generateCodeCount: {
         type: Map,
         of: Number,
-        default: () => ({
-            py: 0,
-            js: 0,
-            HtmlJsCss: 0,
-            c: 0,
-            cpp: 0,
-            java: 0,
-            cs: 0,
-            rust: 0,
-            go: 0,
-            sql: 0,
-            mongodb: 0,
-            swift: 0,
-            ruby: 0,
-            ts: 0,
-            dart: 0,
-            kt: 0,
-            perl: 0,
-            scala: 0,
-            julia: 0,
-            verilog: 0,
-        }),
+        default: () => ({ ...DEFAULT_LANGUAGE_COUNTS }),
     },
     refactorCodeCount: {
         type: Map,
         of: Number,
-        default: () => ({
-            py: 0,
-            js: 0,
-            HtmlJsCss: 0,
-            c: 0,
-            cpp: 0,
-            java: 0,
-            cs: 0,
-            rust: 0,
-            go: 0,
-            sql: 0,
-            mongodb: 0,
-            swift: 0,
-            ruby: 0,
-            ts: 0,
-            dart: 0,
-            kt: 0,
-            perl: 0,
-            scala: 0,
-            julia: 0,
-            verilog: 0,
-        }),
+        default: () => ({ ...DEFAULT_LANGUAGE_COUNTS }),
     },
     runCodeCount: {
         type: Map,
         of: Number,
-        default: () => ({
-            py: 0,
-            js: 0,
-            c: 0,
-            cpp: 0,
-            java: 0,
-            cs: 0,
-            rust: 0,
-            go: 0,
-            sql: 0,
-            mongodb: 0,
-            swift: 0,
-            ruby: 0,
-            ts: 0,
-            dart: 0,
-            kt: 0,
-            perl: 0,
-            scala: 0,
-            julia: 0,
-            verilog: 0,
-        }),
+        default: () => ({ ...DEFAULT_LANGUAGE_COUNTS }),
     },
     sharedLinks: {
         type: [{
             shareId: {
                 type: String,
                 required: true,
-                unique: true,
-                sparse: true,  // Allow multiple null values
             },
             title: {
                 type: String,
@@ -142,10 +101,19 @@ const userSchema = new mongoose.Schema({
                 type: Date,
                 required: true,
             },
-        }, ],
+        }],
         default: [],
     },
 });
+
+// TTL Index: Automatically remove unverified users whose OTP has expired
+userSchema.index(
+    { otpExpires: 1 },
+    {
+        expireAfterSeconds: 0,
+        partialFilterExpression: { isEmailVerified: false, otpExpires: { $exists: true } },
+    }
+);
 
 userSchema.pre('save', async function() {
     const user = this;
@@ -157,12 +125,13 @@ userSchema.pre('save', async function() {
     }
 });
 
-userSchema.pre('remove', async function() {
+// Replace deprecated remove hook with deleteOne
+userSchema.pre('deleteOne', { document: true, query: false }, async function() {
     const user = this;
     try {
         await logUserAction(user, 'delete');
     } catch (err) {
-        console.error('Error in pre-remove logUserAction:', err);
+        console.error('Error in deleteOne logUserAction:', err);
     }
 });
 

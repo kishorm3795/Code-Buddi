@@ -21,11 +21,18 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+load_dotenv()
+
 app = Flask(__name__)
 
-CORS(app)
-
-load_dotenv()
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+CORS(app, origins=allowed_origins, supports_credentials=True)
 
 is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
 
@@ -42,111 +49,65 @@ gemini_model = os.getenv("GEMINI_MODEL") or "gemini-2.5-pro"
 gemini_model_1 = os.getenv("GEMINI_MODEL_1") or "gemini-2.5-flash"
 
 
-def get_generated_code(problem_description, language):
-    try:
-        if language not in valid_languages:
-            logging.warning(
-                f"Unsupported language requested for generation: {language}"
-            )
-            return "Error: Unsupported language."
+def stream_gemini_content(contents, system_instruction, model=None):
+    """Unified streaming helper for Gemini text generation."""
+    target_model = model or gemini_model
 
-        def stream():
+    def stream():
+        try:
             client = genai.Client()
-
             response = client.models.generate_content_stream(
-                model=gemini_model,
-                contents=generate_code_prompt.format(
-                    problem_description=problem_description, language=language
-                ),
+                model=target_model,
+                contents=contents,
                 config=types.GenerateContentConfig(
-                    system_instruction=generate_instruction.format(language=language),
+                    system_instruction=system_instruction,
                 ),
             )
-
             for chunk in response:
                 if chunk.text:
                     yield chunk.text
+        except Exception as e:
+            logging.error(f"Error during Gemini stream generation: {e}")
+            yield f"\n[Generation Error: {str(e)}]"
 
-        return Response(stream_with_context(stream()), mimetype="text/plain")
+    return Response(stream_with_context(stream()), mimetype="text/plain")
 
-    except Exception as e:
-        logging.error(f"Error in get_generated_code function: {e}")
-        return ""
+
+def get_generated_code(problem_description, language):
+    contents = generate_code_prompt.format(
+        problem_description=problem_description, language=language
+    )
+    system_instruction = generate_instruction.format(language=language)
+    return stream_gemini_content(contents, system_instruction, model=gemini_model)
 
 
 def get_output(code, language):
-    try:
-        if language in languages_prompts:
-            prompt = languages_prompts[language].format(
-                code=code, time=utc_time_reference()
-            )
-        else:
-            logging.warning(f"Unsupported language for get_output: {language}")
-            return "Error: Language not supported."
-
-        def stream():
-            client = genai.Client()
-
-            response = client.models.generate_content_stream(
-                model=gemini_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=compiler_instruction.format(language=language),
-                ),
-            )
-
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-
-        return Response(stream_with_context(stream()), mimetype="text/plain")
-    except Exception as e:
-        logging.error(f"Error in get_output function: {e}")
-        return f"Error: Unable to process the code. {str(e)}"
+    prompt = languages_prompts[language].format(
+        code=code, time=utc_time_reference()
+    )
+    system_instruction = compiler_instruction.format(language=language)
+    return stream_gemini_content(prompt, system_instruction, model=gemini_model)
 
 
 def refactor_code(code, language, output, problem_description=None):
-    try:
-        if language not in valid_languages:
-            return "Error: Unsupported language."
+    if problem_description:
+        refactor_content = refactor_code_prompt_user.format(
+            code=code,
+            language=language,
+            problem_description=problem_description or "",
+            output=output,
+        )
+    else:
+        refactor_content = refactor_code_prompt.format(
+            code=code, language=language, output=output
+        )
 
-        if problem_description:
-            refactor_contnet = refactor_code_prompt_user.format(
-                code=code,
-                language=language,
-                problem_description=problem_description or "",
-                output=output,
-            )
-        else:
-            refactor_contnet = refactor_code_prompt.format(
-                code=code, language=language, output=output
-            )
-
-        def stream():
-            client = genai.Client()
-
-            response = client.models.generate_content_stream(
-                model=gemini_model,
-                contents=refactor_contnet,
-                config=types.GenerateContentConfig(
-                    system_instruction=refactor_instruction.format(language=language),
-                ),
-            )
-
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-
-        return Response(stream_with_context(stream()), mimetype="text/plain")
-
-    except Exception as e:
-        logging.error(f"Error in refactor_code function: {e}")
-        return ""
+    system_instruction = refactor_instruction.format(language=language)
+    return stream_gemini_content(refactor_content, system_instruction, model=gemini_model)
 
 
 def refactor_code_html_css_js(language, prompt, params, problem_description=None):
     try:
-
         if problem_description:
             formatted_prompt = prompt.format(
                 **params, problem_description=problem_description
@@ -173,23 +134,11 @@ def refactor_code_html_css_js(language, prompt, params, problem_description=None
 
 def generate_html(prompt):
     formatted_prompt = html_prompt.format(prompt=prompt, time=utc_time_reference())
-
-    def stream():
-        client = genai.Client()
-
-        response = client.models.generate_content_stream(
-            model=gemini_model_1,
-            contents=formatted_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=html_generate_instruction,
-            ),
-        )
-
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
-
-    return Response(stream_with_context(stream()), mimetype="text/plain")
+    return stream_gemini_content(
+        contents=formatted_prompt,
+        system_instruction=html_generate_instruction,
+        model=gemini_model_1,
+    )
 
 
 def generate_css(html_content, project_description):
@@ -198,23 +147,11 @@ def generate_css(html_content, project_description):
         project_description=project_description,
         time=utc_time_reference(),
     )
-
-    def stream():
-        client = genai.Client()
-
-        response = client.models.generate_content_stream(
-            model=gemini_model_1,
-            contents=formatted_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=css_generate_instruction,
-            ),
-        )
-
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
-
-    return Response(stream_with_context(stream()), mimetype="text/plain")
+    return stream_gemini_content(
+        contents=formatted_prompt,
+        system_instruction=css_generate_instruction,
+        model=gemini_model_1,
+    )
 
 
 def generate_js(html_content, css_content, project_description):
@@ -224,23 +161,11 @@ def generate_js(html_content, css_content, project_description):
         project_description=project_description,
         time=utc_time_reference(),
     )
-
-    def stream():
-        client = genai.Client()
-
-        response = client.models.generate_content_stream(
-            model=gemini_model_1,
-            contents=formatted_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=js_generate_instruction,
-            ),
-        )
-
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
-
-    return Response(stream_with_context(stream()), mimetype="text/plain")
+    return stream_gemini_content(
+        contents=formatted_prompt,
+        system_instruction=js_generate_instruction,
+        model=gemini_model_1,
+    )
 
 
 @app.route("/")
@@ -261,15 +186,23 @@ def generate_code():
             logging.warning("reCAPTCHA verification failed for /generate_code.")
             abort(403, description="reCAPTCHA verification failed.")
 
-        problem_description = request.json["problem_description"]
-        language = request.json["language"]
+        data = request.get_json(silent=True) or {}
+        problem_description = data.get("problem_description")
+        language = data.get("language")
+
+        if not problem_description or not language:
+            return jsonify({"error": "Missing problem_description or language"}), 400
+
+        if language not in valid_languages:
+            logging.warning(f"Unsupported language requested for generation: {language}")
+            return jsonify({"error": f"Unsupported language: {language}"}), 400
 
         logging.info(f"Generating code for language: {language}")
         return get_generated_code(problem_description, language)
 
     except Exception as e:
         logging.error(f"Error in /generate_code endpoint: {e}")
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/get-output", methods=["POST"])
@@ -284,12 +217,17 @@ def get_output_api():
             logging.warning("reCAPTCHA verification failed for /get-output.")
             abort(403, description="reCAPTCHA verification failed.")
 
-        code = request.json["code"]
-        language = request.json["language"]
+        data = request.get_json(silent=True) or {}
+        code = data.get("code")
+        language = data.get("language")
 
         if not code or not language:
             logging.warning("Missing code or language in /get-output request.")
             return jsonify({"error": "Missing code or language"}), 400
+
+        if language not in languages_prompts:
+            logging.warning(f"Unsupported language for get_output: {language}")
+            return jsonify({"error": f"Language '{language}' is not supported for execution"}), 400
 
         if len(code.encode("utf-8")) > MAX_SIZE:
             logging.warning("Code size exceeds maximum allowed limit.")
@@ -298,12 +236,11 @@ def get_output_api():
         code = f"\n\n{code}\n\n"
 
         logging.info(f"Getting output for language: {language}")
-
         return get_output(code, language)
 
     except Exception as e:
         logging.error(f"Error in /get-output endpoint: {e}")
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/refactor_code", methods=["POST"])
@@ -318,29 +255,29 @@ def refactor_code_api():
             logging.warning("reCAPTCHA verification failed for /refactor_code.")
             abort(403, description="reCAPTCHA verification failed.")
 
-        code = request.json["code"]
-        language = request.json["language"]
-        problem_description = request.json["problem_description"]
-        output = request.json["output"]
+        data = request.get_json(silent=True) or {}
+        code = data.get("code")
+        language = data.get("language")
+        problem_description = data.get("problem_description")
+        output = data.get("output", "")
 
         if not code or not language:
             logging.warning("Missing code or language in /refactor_code request.")
             return jsonify({"error": "Missing code or language"}), 400
+
+        if language not in valid_languages:
+            return jsonify({"error": f"Unsupported language: {language}"}), 400
 
         if len(code.encode("utf-8")) > MAX_SIZE:
             logging.warning("Code size exceeds maximum allowed limit.")
             return jsonify({"error": "Code size exceeds the 0.5 MB limit"}), 413
 
         logging.info(f"Refactoring code for language: {language}")
-
-        if problem_description:
-            return refactor_code(code, language, output, problem_description)
-        else:
-            return refactor_code(code, language, output)
+        return refactor_code(code, language, output, problem_description)
 
     except Exception as e:
         logging.error(f"Error in /refactor_code endpoint: {e}")
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/improve-prompt", methods=["POST"])

@@ -294,14 +294,14 @@ app.use(express.urlencoded({ extended: true, limit: '200kb' }));
   - [x] S6: Fail closed on missing reCAPTCHA secret in production
   - [x] S7: 6-digit numeric OTP with 5-attempt lockout
   - [x] S8: Integrate rate limiters across all microservices
-- [ ] **Phase 2: P1 High Vulnerabilities**
-  - [ ] S9: Dynamic allowed origins in CORS
-  - [ ] S10: Centralize JWT generation with mandatory expiration
-  - [ ] S11: Token validity / revocation strategy
-  - [ ] S12: Check `email_verified` on Google OAuth login
-  - [ ] S13: Harden client token storage & CSP
-  - [ ] S14: Mitigate account enumeration in responses
-  - [ ] S15: Add `helmet` and streamline body parsers
+- [x] **Phase 2: P1 High Vulnerabilities**
+  - [x] S9: Dynamic allowed origins in CORS
+  - [x] S10: Centralize JWT generation with mandatory expiration
+  - [x] S11: Token validity / revocation strategy
+  - [x] S12: Check `email_verified` on Google OAuth login
+  - [x] S13: Harden client token storage & CSP
+  - [x] S14: Mitigate account enumeration in responses
+  - [x] S15: Add `helmet` and streamline body parsers
 - [ ] **Phase 3: P2 Hardening & Quality**
   - [ ] S16: Strengthen and rotate JWT secrets
   - [ ] S17: Enforce input bounds and prompt injection safeguards

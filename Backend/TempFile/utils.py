@@ -112,6 +112,9 @@ def is_human(recaptcha_token):
         return False
 
 
+LOGIN_SERVICE_URL = os.getenv("LOGIN_SERVICE_URL")
+
+
 def token_required(f):
     @wraps(f)
     def decorator(*args, **kwargs):
@@ -129,6 +132,30 @@ def token_required(f):
             decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS512"])
             request.user_data = decoded
             logging.info("Token successfully decoded.")
+
+            if redis_client:
+                try:
+                    if redis_client.get(f"revoked_token:{token}") or redis_client.get(f"revoked_user:{decoded.get('userId')}"):
+                        logging.warning("Token or user is listed in revocation blacklist.")
+                        return jsonify({"message": "Token has been revoked!"}), 401
+                except Exception as e:
+                    logging.warning(f"Error checking token revocation in Redis: {e}")
+
+            if LOGIN_SERVICE_URL and os.getenv("VERIFY_TOKEN_REMOTE", "false").lower() == "true":
+                try:
+                    verify_res = requests.get(
+                        f"{LOGIN_SERVICE_URL}/api/verify-token",
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=3,
+                    )
+                    if verify_res.status_code != 200:
+                        logging.warning("Token verification failed with auth service.")
+                        return jsonify({"message": "Token revoked or user invalid!"}), 401
+                except requests.RequestException as e:
+                    logging.warning(f"Could not reach auth service to verify token: {e}")
+        except jwt.ExpiredSignatureError:
+            logging.warning("Token has expired.")
+            return jsonify({"message": "Token has expired!"}), 401
         except jwt.InvalidTokenError as e:
             logging.warning(f"Invalid token received: {e}")
             return jsonify({"message": "Invalid token!"}), 401

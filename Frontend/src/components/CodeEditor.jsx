@@ -1168,10 +1168,13 @@ const CodeEditor = ({
   const RenderOutput = () => (
     <>
       <div className="mt-6 hacker-glass rounded-xl overflow-hidden border border-gray-200 dark:border-green-500/20 shadow-xl">
-        <div className="bg-gray-100/50 dark:bg-gray-800/50 p-3 border-b border-gray-200 dark:border-green-500/10">
+        <div className="bg-gray-100/50 dark:bg-gray-800/50 p-3 border-b border-gray-200 dark:border-green-500/10 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <BiTerminal className="ml-2 text-xl text-green-400" />
             <h2 className="text-lg font-bold text-gray-700 dark:text-green-400 tracking-wide">Output</h2>
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              AI-Simulated (Gemini)
+            </span>
           </div>
         </div>
 
@@ -1183,7 +1186,7 @@ const CodeEditor = ({
         </pre>
       </div>
       <p className="ml-2 text-xs text-gray-500 italic">
-        Output may not be accurate.
+        Execution is AI-simulated via Gemini LLM. Output may differ from native compiler/runtime execution.
       </p>
     </>
   );

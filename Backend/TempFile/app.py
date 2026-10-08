@@ -24,7 +24,15 @@ logging.basicConfig(
 )
 
 app = Flask(__name__)
-CORS(app)
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+CORS(app, origins=allowed_origins, supports_credentials=True)
 
 is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
 
