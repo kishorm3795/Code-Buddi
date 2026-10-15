@@ -6,7 +6,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const cors = require('cors');
+const pino = require('pino');
 require('dotenv').config();
+
+// Configure structured logging with pino
+const logger = pino({
+    level: process.env.LOG_LEVEL || 'info'
+});
 
 const corsOptions = require('./config/corsOptions');
 const User = require('./models/User');
@@ -34,7 +40,7 @@ const { sendUsernameChangeEmail } = require('./smtp/usernameChanged');
 const rateLimit = require('express-rate-limit');
 
 if (process.env.NODE_ENV === 'production' && !process.env.RECAPTCHA_SECRET_KEY) {
-	console.error('FATAL: RECAPTCHA_SECRET_KEY must be configured in production.');
+	logger.error('FATAL: RECAPTCHA_SECRET_KEY must be configured in production.');
 	process.exit(1);
 }
 

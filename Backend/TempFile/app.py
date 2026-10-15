@@ -19,8 +19,20 @@ import logging
 
 load_dotenv()
 
+import json
+import sys
+from pythonjsonlogger import jsonlogger
+
+# Configure structured logging
+logHandler = logging.StreamHandler(sys.stdout)
+formatter = jsonlogger.JsonFormatter(
+    '%(asctime)s %(levelname)s %(name)s %(message)s'
+)
+logHandler.setFormatter(formatter)
+
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    handlers=[logHandler]
 )
 
 app = Flask(__name__)
@@ -146,6 +158,48 @@ def upload_file():
 
     finally:
         redis_client.close()
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    """Health check endpoint for TempFile service."""
+    # Check Redis connection
+    try:
+        redis_client = get_redis_connection()
+        if redis_client:
+            # Try to ping Redis
+            redis_client.ping()
+            redis_client.close()
+            redis_healthy = True
+            redis_error = None
+        else:
+            redis_healthy = False
+            redis_error = "Failed to create Redis connection"
+    except Exception as e:
+        redis_healthy = False
+        redis_error = str(e)
+
+    # Check if JWT secret is configured
+    jwt_configured = bool(os.getenv("JWT_SECRET"))
+    # Check if recaptcha is configured in production
+    is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+    recaptcha_configured = bool(os.getenv("RECAPTCHA_SECRET_KEY")) if is_production else True
+
+    is_healthy = redis_healthy and jwt_configured and recaptcha_configured
+
+    return jsonify({
+        "status": "healthy" if is_healthy else "unhealthy",
+        "service": "tempfile",
+        "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "checks": {
+            "redis_connection": {
+                "healthy": redis_healthy,
+                "error": redis_error if not redis_healthy else None
+            },
+            "jwt_secret_configured": jwt_configured,
+            "recaptcha_configured": recaptcha_configured if is_production else "skipped_in_dev"
+        }
+    }), 200 if is_healthy else 503
 
 
 @app.route("/file/<shareId>", methods=["GET"])

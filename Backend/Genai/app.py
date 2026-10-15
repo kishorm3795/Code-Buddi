@@ -17,8 +17,20 @@ from google.genai import types
 from prompts import *
 from utils import *
 
+import json
+import sys
+from pythonjsonlogger import jsonlogger
+
+# Configure structured logging
+logHandler = logging.StreamHandler(sys.stdout)
+formatter = jsonlogger.JsonFormatter(
+    '%(asctime)s %(levelname)s %(name)s %(message)s'
+)
+logHandler.setFormatter(formatter)
+
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    handlers=[logHandler]
 )
 
 load_dotenv()
@@ -370,6 +382,48 @@ def htmlcssjs_generate_stream():
         logging.error(f"Error in /htmlcssjsgenerate-code endpoint: {e}")
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
+
+@app.route("/health", methods=["GET"])
+def health():
+    """Health check endpoint for Genai service."""
+    # Check if Gemini API is configured
+    gemini_configured = bool(os.getenv("GEMINI_API_KEY"))
+    # Check if JWT secret is configured
+    jwt_configured = bool(os.getenv("JWT_SECRET"))
+    # Check if recaptcha is configured in production
+    is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+    recaptcha_configured = bool(os.getenv("RECAPTCHA_SECRET_KEY")) if is_production else True
+
+    # Lightweight Gemini API connectivity check (only if configured)
+    gemini_healthy = False
+    if gemini_configured:
+        try:
+            # Initialize client with timeout
+            client = genai.Client()
+            # Make a lightweight request to verify connectivity
+            # We use a minimal request to check if the API is reachable
+            # Note: This makes an actual API call but with minimal tokens
+            models = list(client.models.list(page_size=1))
+            gemini_healthy = len(list(models)) > 0
+        except Exception as e:
+            logging.warning(f"Gemini API health check failed: {str(e)}")
+            gemini_healthy = False
+    else:
+        gemini_healthy = False
+
+    is_healthy = gemini_healthy and jwt_configured and recaptcha_configured
+
+    return jsonify({
+        "status": "healthy" if is_healthy else "unhealthy",
+        "service": "genai",
+        "timestamp": utc_time_reference(),
+        "checks": {
+            "gemini_api_configured": gemini_configured,
+            "gemini_api_healthy": gemini_healthy,
+            "jwt_secret_configured": jwt_configured,
+            "recaptcha_configured": recaptcha_configured if is_production else "skipped_in_dev"
+        }
+    }), 200 if is_healthy else 503
 
 @app.route("/htmlcssjsrefactor-code", methods=["POST"])
 @token_required

@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6
+    container_name: codebuddi-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=codebuddi
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Database
+  redis:
+    image: redis:7-alpine
+    container_name: codebuddi-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend - Login Service
+  login:
+    build:
+      context: ./Backend/Login
+      dockerfile: Dockerfile
+    container_name: codebuddi-login
+    restart: unless-stopped
+    ports:
+      - "5003:5003"
+    environment:
+      - PORT=5003
+      - MONGO_URI=mongodb://mongodb:27017/codebuddi
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=production
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      - OTP_EMAIL_SERVICE=${OTP_EMAIL_SERVICE}
+      - OTP_EMAIL_USER=${OTP_EMAIL_USER}
+      - OTP_EMAIL_PASS=${OTP_EMAIL_PASS}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend - Genai Service
+  genai:
+    build:
+      context: ./Backend/Genai
+      dockerfile: Dockerfile
+    container_name: codebuddi-genai
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
+      - GEMINI_MODEL_1=${GEMINI_MODEL_1:-gemini-2.5-flash}
+      - JWT_SECRET=${JWT_SECRET}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      - ALLOWED_ORIGINS=http://localhost:5173
+      - FLASK_ENV=production
+    depends_on:
+      - login
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend - TempFile Service
+  tempfile:
+    build:
+      context: ./Backend/TempFile
+      dockerfile: Dockerfile
+    container_name: codebuddi-tempfile
+    restart: unless-stopped
+    ports:
+      - "5002:5002"
+    environment:
+      - TEMP_FILE_URL=http://localhost:5002
+      - JWT_SECRET=${JWT_SECRET}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_SSL=false
+      - ALLOWED_ORIGINS=http://localhost:5173
+      - FLASK_ENV=production
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: codebuddi-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - VITE_BACKEND_API_URL=http://localhost:5003
+      - VITE_GEMINI_API_URL=http://localhost:5001
+      - VITE_TEMP_SHARE_URL=http://localhost:5002
+      - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+    depends_on:
+      - login
+      - genai
+      - tempfile
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mongodb_data:
+  redis_data:

@@ -1,4 +1,5 @@
 import { RECAPTCHA_SITE_KEY } from "./constants";
+import { error as loggerError } from "./logger";
 
 export const apiFetch = async (url, options = {}) => {
   const methodsWithBody = ["POST", "PUT", "DELETE"];
@@ -22,7 +23,7 @@ export const apiFetch = async (url, options = {}) => {
 
         options.headers["X-Recaptcha-Token"] = token;
       } catch (error) {
-        console.error("Could not get reCAPTCHA token", error);
+        loggerError("Could not get reCAPTCHA token", { error: error.message });
         return Promise.reject(error);
       }
     }
