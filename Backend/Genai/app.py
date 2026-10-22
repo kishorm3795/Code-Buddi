@@ -15,6 +15,7 @@ from flask_cors import CORS
 from google import genai
 from google.genai import types
 from prompts import *
+from prompt_registry import registry
 from utils import *
 
 import json
@@ -85,40 +86,64 @@ def stream_gemini_content(contents, system_instruction, model=None):
     return Response(stream_with_context(stream()), mimetype="text/plain")
 
 
-def get_generated_code(problem_description, language):
-    contents = generate_code_prompt.format(
-        problem_description=problem_description, language=language
+def get_generated_code(problem_description, language, prompt_version=None):
+    contents = registry.format(
+        "code:generate",
+        _version=prompt_version,
+        problem_description=problem_description,
+        language=language,
     )
-    system_instruction = generate_instruction.format(language=language)
+    system_instruction = registry.format(
+        "instruction:generate",
+        _version=prompt_version,
+        language=language,
+    )
     return stream_gemini_content(contents, system_instruction, model=gemini_model)
 
 
-def get_output(code, language):
-    prompt = languages_prompts[language].format(
-        code=code, time=utc_time_reference()
+def get_output(code, language, prompt_version=None):
+    prompt = registry.format(
+        f"compiler:{language}",
+        _version=prompt_version,
+        code=code,
+        time=utc_time_reference(),
     )
-    system_instruction = compiler_instruction.format(language=language)
+    system_instruction = registry.format(
+        "instruction:compiler",
+        _version=prompt_version,
+        language=language,
+    )
     return stream_gemini_content(prompt, system_instruction, model=gemini_model)
 
 
-def refactor_code(code, language, output, problem_description=None):
+def refactor_code(code, language, output, problem_description=None, prompt_version=None):
     if problem_description:
-        refactor_content = refactor_code_prompt_user.format(
+        refactor_content = registry.format(
+            "code:refactor_user",
+            _version=prompt_version,
             code=code,
             language=language,
             problem_description=problem_description or "",
             output=output,
         )
     else:
-        refactor_content = refactor_code_prompt.format(
-            code=code, language=language, output=output
+        refactor_content = registry.format(
+            "code:refactor",
+            _version=prompt_version,
+            code=code,
+            language=language,
+            output=output,
         )
 
-    system_instruction = refactor_instruction.format(language=language)
+    system_instruction = registry.format(
+        "instruction:refactor",
+        _version=prompt_version,
+        language=language,
+    )
     return stream_gemini_content(refactor_content, system_instruction, model=gemini_model)
 
 
-def refactor_code_html_css_js(language, prompt, params, problem_description=None):
+def refactor_code_html_css_js(language, prompt, params, problem_description=None, prompt_version=None):
     try:
         if problem_description:
             formatted_prompt = prompt.format(
@@ -128,12 +153,17 @@ def refactor_code_html_css_js(language, prompt, params, problem_description=None
             formatted_prompt = prompt.format(**params)
 
         client = genai.Client()
+        system_instruction = registry.format(
+            "instruction:refactor",
+            _version=prompt_version,
+            language=language,
+        )
 
         response = client.models.generate_content(
             model=gemini_model_1,
             contents=formatted_prompt,
             config=types.GenerateContentConfig(
-                system_instruction=refactor_instruction.format(language=language),
+                system_instruction=system_instruction,
             ),
         )
 
@@ -144,38 +174,50 @@ def refactor_code_html_css_js(language, prompt, params, problem_description=None
         return f"Error: {e}"
 
 
-def generate_html(prompt):
-    formatted_prompt = html_prompt.format(prompt=prompt, time=utc_time_reference())
+def generate_html(prompt, prompt_version=None):
+    formatted_prompt = registry.format(
+        "web:html_generate",
+        _version=prompt_version,
+        prompt=prompt,
+        time=utc_time_reference(),
+    )
+    system_instruction = registry.get("instruction:html_generate", version=prompt_version)
     return stream_gemini_content(
         contents=formatted_prompt,
-        system_instruction=html_generate_instruction,
+        system_instruction=system_instruction,
         model=gemini_model_1,
     )
 
 
-def generate_css(html_content, project_description):
-    formatted_prompt = css_prompt.format(
+def generate_css(html_content, project_description, prompt_version=None):
+    formatted_prompt = registry.format(
+        "web:css_generate",
+        _version=prompt_version,
         html_content=html_content,
         project_description=project_description,
         time=utc_time_reference(),
     )
+    system_instruction = registry.get("instruction:css_generate", version=prompt_version)
     return stream_gemini_content(
         contents=formatted_prompt,
-        system_instruction=css_generate_instruction,
+        system_instruction=system_instruction,
         model=gemini_model_1,
     )
 
 
-def generate_js(html_content, css_content, project_description):
-    formatted_prompt = js_prompt.format(
+def generate_js(html_content, css_content, project_description, prompt_version=None):
+    formatted_prompt = registry.format(
+        "web:js_generate",
+        _version=prompt_version,
         html_content=html_content,
         css_content=css_content,
         project_description=project_description,
         time=utc_time_reference(),
     )
+    system_instruction = registry.get("instruction:js_generate", version=prompt_version)
     return stream_gemini_content(
         contents=formatted_prompt,
-        system_instruction=js_generate_instruction,
+        system_instruction=system_instruction,
         model=gemini_model_1,
     )
 
@@ -201,6 +243,7 @@ def generate_code():
         data = request.get_json(silent=True) or {}
         problem_description = data.get("problem_description")
         language = data.get("language")
+        prompt_version = request.headers.get("X-Prompt-Version") or data.get("prompt_version")
 
         if not problem_description or not language:
             return jsonify({"error": "Missing problem_description or language"}), 400
@@ -209,8 +252,8 @@ def generate_code():
             logging.warning(f"Unsupported language requested for generation: {language}")
             return jsonify({"error": f"Unsupported language: {language}"}), 400
 
-        logging.info(f"Generating code for language: {language}")
-        return get_generated_code(problem_description, language)
+        logging.info(f"Generating code for language: {language} (prompt v{prompt_version or 'active'})")
+        return get_generated_code(problem_description, language, prompt_version=prompt_version)
 
     except Exception as e:
         logging.error(f"Error in /generate_code endpoint: {e}")
@@ -232,6 +275,7 @@ def get_output_api():
         data = request.get_json(silent=True) or {}
         code = data.get("code")
         language = data.get("language")
+        prompt_version = request.headers.get("X-Prompt-Version") or data.get("prompt_version")
 
         if not code or not language:
             logging.warning("Missing code or language in /get-output request.")
@@ -247,8 +291,8 @@ def get_output_api():
         
         code = f"\n\n{code}\n\n"
 
-        logging.info(f"Getting output for language: {language}")
-        return get_output(code, language)
+        logging.info(f"Getting output for language: {language} (prompt v{prompt_version or 'active'})")
+        return get_output(code, language, prompt_version=prompt_version)
 
     except Exception as e:
         logging.error(f"Error in /get-output endpoint: {e}")
@@ -272,6 +316,7 @@ def refactor_code_api():
         language = data.get("language")
         problem_description = data.get("problem_description")
         output = data.get("output", "")
+        prompt_version = request.headers.get("X-Prompt-Version") or data.get("prompt_version")
 
         if not code or not language:
             logging.warning("Missing code or language in /refactor_code request.")
@@ -284,8 +329,8 @@ def refactor_code_api():
             logging.warning("Code size exceeds maximum allowed limit.")
             return jsonify({"error": "Code size exceeds the 0.5 MB limit"}), 413
 
-        logging.info(f"Refactoring code for language: {language}")
-        return refactor_code(code, language, output, problem_description)
+        logging.info(f"Refactoring code for language: {language} (prompt v{prompt_version or 'active'})")
+        return refactor_code(code, language, output, problem_description, prompt_version=prompt_version)
 
     except Exception as e:
         logging.error(f"Error in /refactor_code endpoint: {e}")
@@ -302,7 +347,7 @@ def improve_prompt():
         logging.warning("reCAPTCHA verification failed for /improve-prompt.")
         abort(403, description="reCAPTCHA verification failed.")
 
-    data = request.get_json()
+    data = request.get_json() or {}
 
     topic = data.get("topic")
 
@@ -317,12 +362,18 @@ def improve_prompt():
     try:
         client = genai.Client()
 
-        prompt_template = improve_prompts[language].format(topic=topic)
+        prompt_version = request.headers.get("X-Prompt-Version") or data.get("prompt_version")
+        prompt_template = registry.format(
+            f"improve:{language}",
+            _version=prompt_version,
+            topic=topic,
+        )
+        system_instruction = registry.get("instruction:improve", version=prompt_version)
 
         response = client.models.generate_content(
             model=gemini_model,
             config=types.GenerateContentConfig(
-                system_instruction=system_improve_prompt,
+                system_instruction=system_instruction,
             ),
             contents=prompt_template,
         )
@@ -356,11 +407,12 @@ def htmlcssjs_generate_stream():
             )
             abort(403, description="reCAPTCHA verification failed.")
 
-        data = request.get_json()
+        data = request.get_json() or {}
         code_type = data.get("type")
         prompt = data.get("prompt")
         html_content = data.get("htmlContent", "")
         css_content = data.get("cssContent", "")
+        prompt_version = request.headers.get("X-Prompt-Version") or data.get("prompt_version")
 
         if not prompt:
             return jsonify({"error": "Project description is required"}), 400
@@ -368,12 +420,12 @@ def htmlcssjs_generate_stream():
         if code_type not in {"html", "css", "js"}:
             return jsonify({"error": "Invalid or missing 'type' parameter"}), 400
 
-        logging.info(f"Generating {code_type} code")
+        logging.info(f"Generating {code_type} code (prompt v{prompt_version or 'active'})")
 
         generators = {
-            "html": lambda: generate_html(prompt),
-            "css": lambda: generate_css(html_content, prompt),
-            "js": lambda: generate_js(html_content, css_content, prompt),
+            "html": lambda: generate_html(prompt, prompt_version=prompt_version),
+            "css": lambda: generate_css(html_content, prompt, prompt_version=prompt_version),
+            "js": lambda: generate_js(html_content, css_content, prompt, prompt_version=prompt_version),
         }
 
         return generators[code_type]()
@@ -421,7 +473,8 @@ def health():
             "gemini_api_configured": gemini_configured,
             "gemini_api_healthy": gemini_healthy,
             "jwt_secret_configured": jwt_configured,
-            "recaptcha_configured": recaptcha_configured if is_production else "skipped_in_dev"
+            "recaptcha_configured": recaptcha_configured if is_production else "skipped_in_dev",
+            "prompt_templates_loaded": len(registry.list_prompts()),
         }
     }), 200 if is_healthy else 503
 
@@ -632,6 +685,77 @@ def htmlcssjs_refactor():
     except Exception as e:
         logging.error(f"Error in /htmlcssjsrefactor-code endpoint: {e}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+# --- Prompt Versioning & Registry APIs ---
+
+@app.route("/api/prompts", methods=["GET"])
+def list_prompts_api():
+    """List all registered prompt families, active versions, and metadata."""
+    tag = request.args.get("tag")
+    prompts_data = registry.list_prompts(tag=tag)
+    return jsonify({
+        "status": "success",
+        "total": len(prompts_data),
+        "prompts": prompts_data,
+    }), 200
+
+
+@app.route("/api/prompts/<path:prompt_name>", methods=["GET"])
+def get_prompt_api(prompt_name):
+    """Retrieve details and template text for a specific prompt version."""
+    version = request.args.get("version")
+    meta = registry.get_metadata(prompt_name, version=version)
+    if not meta:
+        return jsonify({"error": f"Prompt '{prompt_name}' not found"}), 404
+
+    return jsonify({
+        "name": meta.name,
+        "version": meta.version,
+        "active_version": registry.get_active_version(meta.name),
+        "description": meta.description,
+        "required_keys": meta.required_keys,
+        "model_tier": meta.model_tier,
+        "tags": meta.tags,
+        "system_instruction": meta.system_instruction_name,
+        "template": meta.template,
+        "created_at": meta.created_at,
+    }), 200
+
+
+@app.route("/api/prompts/<path:prompt_name>/diff", methods=["GET"])
+def diff_prompt_api(prompt_name):
+    """Compute diff between two versions of a prompt template."""
+    v1 = request.args.get("v1")
+    v2 = request.args.get("v2")
+    if not v1 or not v2:
+        return jsonify({"error": "Query parameters 'v1' and 'v2' are required"}), 400
+
+    try:
+        diff_data = registry.diff_versions(prompt_name, v1, v2)
+        return jsonify(diff_data), 200
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@app.route("/api/prompts/<path:prompt_name>/version", methods=["POST"])
+@token_required
+def set_prompt_active_version_api(prompt_name):
+    """Set the active version for a prompt (authenticated)."""
+    data = request.get_json(silent=True) or {}
+    version = data.get("version")
+    if not version:
+        return jsonify({"error": "Missing 'version' parameter in request body"}), 400
+
+    try:
+        registry.set_active_version(prompt_name, version)
+        return jsonify({
+            "message": f"Active version for '{prompt_name}' updated to '{version}'.",
+            "prompt_name": prompt_name,
+            "active_version": version,
+        }), 200
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 400
 
 
 if __name__ == "__main__":
