@@ -5,6 +5,25 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   base: "/",
+  server: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5003',
+        changeOrigin: true,
+      },
+      '/ai': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ai/, ''),
+      },
+      '/share': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/share/, ''),
+      },
+    },
+  },
   plugins: [react(),
     tailwindcss(),
     createHtmlPlugin({

@@ -67,6 +67,46 @@ app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '200kb' }));
 
+// Lightweight cookie parser middleware
+app.use((req, res, next) => {
+	req.cookies = {};
+	const cookieHeader = req.headers.cookie;
+	if (cookieHeader) {
+		cookieHeader.split(';').forEach((cookie) => {
+			const parts = cookie.split('=');
+			if (parts.length >= 2) {
+				const name = parts[0].trim();
+				const value = decodeURIComponent(parts.slice(1).join('=').trim());
+				req.cookies[name] = value;
+			}
+		});
+	}
+	next();
+});
+
+const extractToken = (req) => {
+	const authHeader = req.headers['authorization'];
+	if (authHeader && authHeader.startsWith('Bearer ')) {
+		return authHeader.split(' ')[1];
+	}
+	if (req.cookies && req.cookies.token) {
+		return req.cookies.token;
+	}
+	return null;
+};
+
+const setTokenCookie = (res, token) => {
+	const isProduction = process.env.NODE_ENV === 'production';
+	res.cookie('token', token, {
+		httpOnly: true,
+		secure: isProduction,
+		sameSite: isProduction ? 'strict' : 'lax',
+		maxAge: 7 * 24 * 60 * 60 * 1000,
+		path: '/',
+	});
+};
+
+
 const PORT = process.env.PORT || 5003;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
@@ -81,8 +121,20 @@ app.get('/health', (req, res) => {
 	});
 });
 
+app.post('/api/logout', (req, res) => {
+	const isProduction = process.env.NODE_ENV === 'production';
+	res.clearCookie('token', {
+		httpOnly: true,
+		secure: isProduction,
+		sameSite: isProduction ? 'strict' : 'lax',
+		path: '/',
+	});
+	return res.status(200).json({ message: 'Logged out successfully' });
+});
+
+
 app.get('/api/verify-token', async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 	if (!token) {
 		return res.status(401).json({ valid: false, msg: 'No token provided' });
 	}
@@ -280,6 +332,8 @@ app.post('/api/login', authLimiter, verifyRecaptcha, cleanExpired, async (req, r
 		await user.save();
 
 		const token = generateToken(user._id);
+		setTokenCookie(res, token);
+		setTokenCookie(res, token);
 
 		res.json({
 			token,
@@ -364,6 +418,7 @@ if (!token) {
     }
 
 	const appToken = generateToken(user._id);
+		setTokenCookie(res, appToken);
     
     res.status(200).json({
       message: 'Authentication successful!',
@@ -879,7 +934,7 @@ app.post('/api/update-password', otpLimiter, verifyRecaptcha, async (req, res) =
 });
 
 app.get('/api/protected', cleanExpired, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -921,7 +976,7 @@ app.get('/api/protected', cleanExpired, async (req, res) => {
 });
 
 app.post('/api/account-details', cleanExpired, verifyRecaptcha, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -967,7 +1022,7 @@ app.put('/api/change-username', verifyRecaptcha, async (req, res) => {
 	const {
 		newUsername
 	} = req.body;
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1046,7 +1101,7 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 		confirmPassword
 	} = req.body;
 
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1105,6 +1160,7 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 		await sendPassChangeEmail(user.email)
 
 		const newToken = generateToken(user._id);
+		setTokenCookie(res, newToken);
 
 		res.json({
 			msg: 'Password updated successfully',
@@ -1120,7 +1176,7 @@ app.put('/api/change-password', verifyRecaptcha, async (req, res) => {
 });
 
 app.delete('/api/account', verifyRecaptcha, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1161,7 +1217,7 @@ app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 	const {
 		password
 	} = req.body;
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1218,7 +1274,7 @@ app.post('/api/verify-password', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(401).json({
@@ -1267,7 +1323,7 @@ app.post('/api/runCode/count', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1314,7 +1370,7 @@ app.post('/api/generateCode/count', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1361,7 +1417,7 @@ app.post('/api/refactorCode/count', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1421,7 +1477,7 @@ app.post('/api/sharedLink/count', verifyRecaptcha, async (req, res) => {
 });
 
 app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(403).json({
@@ -1470,7 +1526,7 @@ app.post('/api/user/sharedLinks', cleanExpired, async (req, res) => {
 });
 
 app.delete('/api/sharedLink', verifyRecaptcha, async (req, res) => {
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(401).json({
@@ -1536,7 +1592,7 @@ app.delete('/api/user/sharedLink/:shareId', verifyRecaptcha, async (req, res) =>
 	const {
 		shareId
 	} = req.params;
-	const token = req.headers['authorization']?.split(' ')[1];
+	const token = extractToken(req);
 
 	if (!token) {
 		return res.status(401).json({

@@ -78,7 +78,7 @@ services:
       - GEMINI_MODEL_1=${GEMINI_MODEL_1:-gemini-2.5-flash}
       - JWT_SECRET=${JWT_SECRET}
       - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - ALLOWED_ORIGINS=http://localhost:5173
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
       - FLASK_ENV=production
     depends_on:
       - login
@@ -106,7 +106,7 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_SSL=false
-      - ALLOWED_ORIGINS=http://localhost:5173
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
       - FLASK_ENV=production
     depends_on:
       - redis
@@ -117,7 +117,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend
+  # Frontend & API Gateway (Nginx Reverse Proxy on Port 80)
   frontend:
     build:
       context: ./Frontend
@@ -127,9 +127,7 @@ services:
     ports:
       - "80:80"
     environment:
-      - VITE_BACKEND_API_URL=http://localhost:5003
-      - VITE_GEMINI_API_URL=http://localhost:5001
-      - VITE_TEMP_SHARE_URL=http://localhost:5002
+      - VITE_API_GATEWAY_URL=
       - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     depends_on:

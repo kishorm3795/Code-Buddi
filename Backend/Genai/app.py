@@ -41,7 +41,7 @@ app = Flask(__name__)
 allowed_origins = [
     origin.strip()
     for origin in os.getenv(
-        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost,http://localhost:80,http://127.0.0.1:80,http://127.0.0.1"
     ).split(",")
     if origin.strip()
 ]

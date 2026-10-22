@@ -1,4 +1,11 @@
-const defaultOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const defaultOrigins = [
+	'http://localhost:5173',
+	'http://127.0.0.1:5173',
+	'http://localhost',
+	'http://localhost:80',
+	'http://127.0.0.1:80',
+	'http://127.0.0.1',
+];
 const envOrigins = process.env.ALLOWED_ORIGINS
 	? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
 	: [];
@@ -14,7 +21,7 @@ const corsOptions = {
 		return callback(new Error('Blocked by CORS: Origin not allowed'));
 	},
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Authorization', 'x-recaptcha-token'],
+	allowedHeaders: ['Content-Type', 'Authorization', 'x-recaptcha-token', 'x-prompt-version'],
 	credentials: true,
 };
 
