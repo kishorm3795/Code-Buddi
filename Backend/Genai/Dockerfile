@@ -37,5 +37,5 @@ EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5001/health || exit 1
 
-# Run Gunicorn server
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "4", "--worker-class", "sync", "--timeout", "120", "app:app"]
+# Run Gunicorn server with threaded workers for non-blocking SSE streaming
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--worker-class", "gthread", "--threads", "4", "--timeout", "300", "app:app"]

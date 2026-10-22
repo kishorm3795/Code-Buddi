@@ -1,0 +1,45 @@
+# Caddy Gateway Configuration for Code-Buddi
+# Automatic HTTPS, single base URL, and reverse proxying by path
+
+:80 {
+    # Health check
+    respond /healthz 200 {
+        body "gateway healthy\n"
+    }
+
+    # 1. Login service routing (/api/*)
+    handle_path /api/* {
+        reverse_proxy login:5003 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 2. GenAI service routing (/ai/*)
+    handle_path /ai/* {
+        reverse_proxy genai:5001 {
+            flush_interval -1 # Disable response buffering for SSE stream generation
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 3. TempFile service routing (/share/*)
+    handle_path /share/* {
+        reverse_proxy tempfile:5002 {
+            header_up Host {host}
+            header_up X-Real-IP {remote}
+            header_up X-Forwarded-For {remote}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # 4. Frontend SPA fallback
+    handle {
+        reverse_proxy frontend:80
+    }
+}

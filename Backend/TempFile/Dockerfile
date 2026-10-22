@@ -37,5 +37,5 @@ EXPOSE 5002
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5002/health || exit 1
 
-# Run Gunicorn server
-CMD ["gunicorn", "--bind", "0.0.0.0:5002", "--workers", "4", "--worker-class", "sync", "--timeout", "120", "app:app"]
+# Run Gunicorn server with threaded workers
+CMD ["gunicorn", "--bind", "0.0.0.0:5002", "--workers", "2", "--worker-class", "gthread", "--threads", "4", "--timeout", "120", "app:app"]

@@ -40,7 +40,7 @@ app = Flask(__name__)
 allowed_origins = [
     origin.strip()
     for origin in os.getenv(
-        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost,http://localhost:80,http://127.0.0.1:80,http://127.0.0.1"
     ).split(",")
     if origin.strip()
 ]
@@ -54,8 +54,8 @@ if is_production:
     if not os.getenv("REDIS_HOST"):
         raise RuntimeError("FATAL: REDIS_HOST must be configured in production.")
     test_client = get_redis_connection()
-    if not test_client:
-        raise RuntimeError("FATAL: Failed to connect to Redis at startup in production.")
+    if not test_client or isinstance(test_client, MockRedis):
+        raise RuntimeError("FATAL: Failed to connect to Redis at startup in production. In-memory MockRedis fallback is prohibited.")
     test_client.close()
 
 TEMP_FILE_URL = os.getenv("TEMP_FILE_URL")

@@ -6,11 +6,20 @@ import {
 
 const blocker = `
 (() => {
+  const getHost = (u) => {
+    try {
+      if (!u) return location.hostname;
+      return new URL(u, location.href).hostname;
+    } catch {
+      return location.hostname;
+    }
+  };
+
   const blockedHosts = [
-    new URL("${BACKEND_API_URL}").hostname,
-    new URL("${GENAI_API_URL}").hostname,
-    new URL("${TEMP_SHARE_API_URL}").hostname,
-  ];
+    getHost("${BACKEND_API_URL}"),
+    getHost("${GENAI_API_URL}"),
+    getHost("${TEMP_SHARE_API_URL}"),
+  ].filter(Boolean);
 
   const isBlocked = (url) => {
     try {

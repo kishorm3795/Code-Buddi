@@ -1,6 +1,18 @@
-export const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL;
-export const GENAI_API_URL = import.meta.env.VITE_GEMINI_API_URL;
-export const TEMP_SHARE_API_URL = import.meta.env.VITE_TEMP_SHARE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL !== undefined
+  ? import.meta.env.VITE_API_GATEWAY_URL
+  : '';
+
+export const BACKEND_API_URL = import.meta.env.VITE_BACKEND_API_URL !== undefined
+  ? import.meta.env.VITE_BACKEND_API_URL
+  : API_BASE_URL;
+
+export const GENAI_API_URL = import.meta.env.VITE_GEMINI_API_URL !== undefined
+  ? import.meta.env.VITE_GEMINI_API_URL
+  : (API_BASE_URL ? `${API_BASE_URL}/ai` : '/ai');
+
+export const TEMP_SHARE_API_URL = import.meta.env.VITE_TEMP_SHARE_URL !== undefined
+  ? import.meta.env.VITE_TEMP_SHARE_URL
+  : (API_BASE_URL ? `${API_BASE_URL}/share` : '/share');
 
 export const LOCAL_STORAGE_USERNAME_KEY = '__username__';
 export const LOCAL_STORAGE_TOKEN_KEY = '__token__';

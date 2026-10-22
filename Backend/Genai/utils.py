@@ -129,6 +129,10 @@ def token_required(f):
             if auth_header.startswith("Bearer "):
                 token = auth_header.split(" ")[1]
 
+        # httpOnly cookie fallback
+        if not token and "token" in request.cookies:
+            token = request.cookies.get("token")
+
         if not token:
             logging.warning("Access attempt without a token.")
             return jsonify({"message": "Token is missing!"}), 403

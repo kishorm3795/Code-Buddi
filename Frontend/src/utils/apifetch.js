@@ -1,12 +1,27 @@
-import { RECAPTCHA_SITE_KEY } from "./constants";
+import { RECAPTCHA_SITE_KEY, LOCAL_STORAGE_TOKEN_KEY } from "./constants.js";
 import { error as loggerError } from "./logger";
 
 export const apiFetch = async (url, options = {}) => {
   const methodsWithBody = ["POST", "PUT", "DELETE"];
   const requestMethod = options.method?.toUpperCase();
 
+  // Ensure cookies (JWT httpOnly) are transmitted to same-origin reverse proxy
+  options.credentials = options.credentials || "include";
+
+  // Provide Authorization header fallback from local storage if present
+  let authHeader = {};
+  try {
+    const token = typeof window !== "undefined" && window.localStorage ? localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY) : null;
+    if (token) {
+      authHeader = { Authorization: `Bearer ${token}` };
+    }
+  } catch (e) {
+    // Ignore storage access errors
+  }
+
   options.headers = {
     "Content-Type": "application/json",
+    ...authHeader,
     ...options.headers,
   };
 
