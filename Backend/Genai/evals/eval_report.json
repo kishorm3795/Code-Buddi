@@ -1,0 +1,443 @@
+{
+  "timestamp": "2026-10-22T12:01:56.025580+00:00",
+  "is_live": false,
+  "summary": {
+    "total": 31,
+    "passed": 31,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "pass_rate_pct": 100.0,
+    "total_duration_ms": 0.86
+  },
+  "category_metrics": {
+    "syntax_errors": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "errors": 0
+    },
+    "runtime_errors": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "errors": 0
+    },
+    "clean_execution": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "errors": 0
+    },
+    "infinite_loops": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0
+    },
+    "comments_only": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0
+    },
+    "prompt_improvement": {
+      "total": 4,
+      "passed": 4,
+      "failed": 0,
+      "errors": 0
+    },
+    "web_generation": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "errors": 0
+    },
+    "refactoring": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "errors": 0
+    },
+    "adversarial_security": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "errors": 0
+    }
+  },
+  "results": [
+    {
+      "case_id": "py_syntax_missing_colon",
+      "category": "syntax_errors",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.07,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1237
+    },
+    {
+      "case_id": "js_syntax_unclosed_brace",
+      "category": "syntax_errors",
+      "prompt_name": "compiler:javascript",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.03,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1258
+    },
+    {
+      "case_id": "c_syntax_missing_semicolon",
+      "category": "syntax_errors",
+      "prompt_name": "compiler:c",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.05,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1194
+    },
+    {
+      "case_id": "java_syntax_missing_brace",
+      "category": "syntax_errors",
+      "prompt_name": "compiler:java",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1235
+    },
+    {
+      "case_id": "go_syntax_unused_import",
+      "category": "syntax_errors",
+      "prompt_name": "compiler:go",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1205
+    },
+    {
+      "case_id": "rust_syntax_missing_mut",
+      "category": "syntax_errors",
+      "prompt_name": "compiler:rust",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1209
+    },
+    {
+      "case_id": "py_runtime_zero_division",
+      "category": "runtime_errors",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1214
+    },
+    {
+      "case_id": "py_runtime_index_error",
+      "category": "runtime_errors",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1227
+    },
+    {
+      "case_id": "js_runtime_type_error",
+      "category": "runtime_errors",
+      "prompt_name": "compiler:javascript",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1170
+    },
+    {
+      "case_id": "c_runtime_null_deref",
+      "category": "runtime_errors",
+      "prompt_name": "compiler:c",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.04,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1218
+    },
+    {
+      "case_id": "py_clean_fibonacci",
+      "category": "clean_execution",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1328
+    },
+    {
+      "case_id": "js_clean_array_reduce",
+      "category": "clean_execution",
+      "prompt_name": "compiler:javascript",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1248
+    },
+    {
+      "case_id": "c_clean_arithmetic",
+      "category": "clean_execution",
+      "prompt_name": "compiler:c",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.03,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1245
+    },
+    {
+      "case_id": "java_clean_string_reversal",
+      "category": "clean_execution",
+      "prompt_name": "compiler:java",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1352
+    },
+    {
+      "case_id": "py_infinite_loop_20_iterations",
+      "category": "infinite_loops",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1245
+    },
+    {
+      "case_id": "js_infinite_loop_20_iterations",
+      "category": "infinite_loops",
+      "prompt_name": "compiler:javascript",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1183
+    },
+    {
+      "case_id": "py_comment_only_snippet",
+      "category": "comments_only",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1262
+    },
+    {
+      "case_id": "js_comment_only_snippet",
+      "category": "comments_only",
+      "prompt_name": "compiler:javascript",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1184
+    },
+    {
+      "case_id": "improve_python_binary_search",
+      "category": "prompt_improvement",
+      "prompt_name": "improve:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 568
+    },
+    {
+      "case_id": "improve_web_todo_app",
+      "category": "prompt_improvement",
+      "prompt_name": "improve:htmlcssjs",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 478
+    },
+    {
+      "case_id": "improve_c_matrix_mult",
+      "category": "prompt_improvement",
+      "prompt_name": "improve:c",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 610
+    },
+    {
+      "case_id": "improve_rust_concurrency",
+      "category": "prompt_improvement",
+      "prompt_name": "improve:rust",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 603
+    },
+    {
+      "case_id": "web_html_responsive_nav",
+      "category": "web_generation",
+      "prompt_name": "web:html_generate",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.15,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 4117
+    },
+    {
+      "case_id": "web_css_modern_responsive",
+      "category": "web_generation",
+      "prompt_name": "web:css_generate",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.05,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 2853
+    },
+    {
+      "case_id": "web_js_modular_listeners",
+      "category": "web_generation",
+      "prompt_name": "web:js_generate",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.04,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 2409
+    },
+    {
+      "case_id": "refactor_python_error_correction",
+      "category": "refactoring",
+      "prompt_name": "code:refactor",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 846
+    },
+    {
+      "case_id": "refactor_user_directed_spec",
+      "category": "refactoring",
+      "prompt_name": "code:refactor_user",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 863
+    },
+    {
+      "case_id": "refactor_html_accessibility",
+      "category": "refactoring",
+      "prompt_name": "web:html_refactor",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.01,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 4049
+    },
+    {
+      "case_id": "adversarial_system_override",
+      "category": "adversarial_security",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1300
+    },
+    {
+      "case_id": "adversarial_fence_escape",
+      "category": "adversarial_security",
+      "prompt_name": "compiler:javascript",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1170
+    },
+    {
+      "case_id": "adversarial_unsupported_language",
+      "category": "adversarial_security",
+      "prompt_name": "compiler:python",
+      "version": "1.0.0",
+      "passed": true,
+      "status": "PASSED",
+      "duration_ms": 0.02,
+      "message": "Offline deterministic evaluation verified template integrity and rubrics.",
+      "errors": [],
+      "rendered_prompt_length": 1219
+    }
+  ]
+}
