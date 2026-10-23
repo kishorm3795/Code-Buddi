@@ -1,8 +1,14 @@
 const transporter = require('./transporter');
 
 async function sendPassChangeEmail(email) {
+	const emailUser = process.env.OTP_EMAIL_USER;
+	const emailPass = process.env.OTP_EMAIL_PASS;
+	if (!emailUser || !emailPass) {
+		return;
+	}
+
 	const mailOptions = {
-		from: process.env.OTP_EMAIL_USER,
+		from: emailUser,
 		to: email,
 		subject: 'Online IDE - Password Change Notification',
 		html: `

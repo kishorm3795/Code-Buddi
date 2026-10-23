@@ -1,28 +1,6 @@
 const mongoose = require('mongoose');
 const { logUserAction } = require('../utils/useLogger');
-
-const DEFAULT_LANGUAGE_COUNTS = {
-    py: 0,
-    js: 0,
-    HtmlJsCss: 0,
-    c: 0,
-    cpp: 0,
-    java: 0,
-    cs: 0,
-    rust: 0,
-    go: 0,
-    sql: 0,
-    mongodb: 0,
-    swift: 0,
-    ruby: 0,
-    ts: 0,
-    dart: 0,
-    kt: 0,
-    perl: 0,
-    scala: 0,
-    julia: 0,
-    verilog: 0,
-};
+const { DEFAULT_LANGUAGE_COUNTS } = require('../config/constants');
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -47,6 +25,10 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
+    },
+    tokenVersion: {
+        type: Number,
+        default: 0,
     },
     lastLogin: {
         type: Date,
