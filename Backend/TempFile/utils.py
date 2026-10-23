@@ -20,63 +20,121 @@ RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY")
 class MockRedis:
     def __init__(self):
         self.data = {}
+
     def ping(self):
         return True
+
     def set(self, name, value, ex=None):
         self.data[name] = value
         return True
+
     def setex(self, name, time, value):
         self.data[name] = value
         return True
+
     def get(self, name):
         return self.data.get(name)
+
     def delete(self, name):
         if name in self.data:
             del self.data[name]
         return True
+
     def exists(self, name):
         return name in self.data
+
     def ttl(self, name):
         if name in self.data:
-            return 100 # Mock TTL
+            return 100  # Mock TTL
         return -2
+
     def close(self):
         pass
 
-def get_redis_connection():
-    is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
-    redis_host = os.getenv("REDIS_HOST")
 
-    if not redis_host:
-        if is_production:
-            logging.error("FATAL: REDIS_HOST must be configured in production.")
+_redis_pool = None
+_redis_client = None
+
+
+def get_redis_pool():
+    global _redis_pool
+    if _redis_pool is None:
+        redis_host = os.getenv("REDIS_HOST")
+        if not redis_host:
             return None
-        logging.info("Using Mock Redis (No REDIS_HOST configured - Development only)")
-        return MockRedis()
-
-    try:
         use_ssl = os.getenv("REDIS_SSL", "false").lower() in ("true", "1", "yes")
-        redis_client = redis.StrictRedis(
+        redis_port = int(os.getenv("REDIS_PORT") or 6379)
+        redis_password = os.getenv("REDIS_PASSWORD") or None
+        _redis_pool = redis.ConnectionPool(
             host=redis_host,
-            port=int(os.getenv("REDIS_PORT") or 6379),
-            password=os.getenv("REDIS_PASSWORD") or None,
+            port=redis_port,
+            password=redis_password,
             ssl=use_ssl,
             socket_timeout=5,
             socket_connect_timeout=5,
         )
-        redis_client.ping()
-        logging.info("Successfully connected to Redis.")
-        return redis_client
-    except (redis.ConnectionError, redis.TimeoutError, Exception) as e:
-        if is_production:
-            logging.error(f"Failed to connect to Redis at {redis_host}: {e}")
+    return _redis_pool
+
+
+def set_redis_client(client):
+    """Sets the shared Redis client (e.g. for fakeredis in tests)."""
+    global _redis_client
+    _redis_client = client
+
+
+def reset_redis_connection():
+    """Resets the shared Redis pool and client."""
+    global _redis_client, _redis_pool
+    _redis_client = None
+    _redis_pool = None
+
+
+def get_redis_connection():
+    global _redis_client
+    if _redis_client is not None:
+        return _redis_client
+
+    is_dev = os.getenv("APP_ENV") == "development"
+    redis_host = os.getenv("REDIS_HOST")
+
+    if not redis_host:
+        if is_dev:
+            logging.info("Using Mock Redis (No REDIS_HOST configured and APP_ENV=development)")
+            _redis_client = MockRedis()
+            return _redis_client
+        logging.error("FATAL: REDIS_HOST must be configured in non-development environments.")
+        return None
+
+    try:
+        pool = get_redis_pool()
+        if pool is None:
             return None
-        logging.warning(f"Failed to connect to Redis, falling back to Mock Redis in dev: {e}")
-        return MockRedis()
+        client = redis.Redis(connection_pool=pool)
+        client.ping()
+        _redis_client = client
+        logging.info("Successfully connected to Redis using shared connection pool.")
+        return _redis_client
+    except (redis.ConnectionError, redis.TimeoutError) as e:
+        logging.error(f"Failed to connect to Redis at {redis_host}: {e}")
+        if is_dev:
+            logging.warning(f"Falling back to Mock Redis in development: {e}")
+            _redis_client = MockRedis()
+            return _redis_client
+        return None
+    except Exception as e:
+        logging.error(f"Unexpected error connecting to Redis at {redis_host}: {e}")
+        if is_dev:
+            _redis_client = MockRedis()
+            return _redis_client
+        return None
 
 
 def is_human(recaptcha_token):
-    is_production = os.getenv("FLASK_ENV") == "production" or os.getenv("NODE_ENV") == "production"
+    is_production = (
+        os.getenv("APP_ENV") == "production"
+        or os.getenv("FLASK_ENV") == "production"
+        or os.getenv("NODE_ENV") == "production"
+    )
 
     if not RECAPTCHA_SECRET_KEY:
         if is_production:
@@ -93,7 +151,7 @@ def is_human(recaptcha_token):
 
     try:
         response = requests.post(
-            "https://www.google.com/recaptcha/api/siteverify", data=payload, timeout=50
+            "https://www.google.com/recaptcha/api/siteverify", data=payload, timeout=5
         )
         response.raise_for_status()
         result = response.json()
@@ -140,13 +198,13 @@ def token_required(f):
             revocation_client = get_redis_connection()
             if revocation_client:
                 try:
-                    if revocation_client.get(f"revoked_token:{token}") or revocation_client.get(f"revoked_user:{decoded.get('userId')}"):
+                    if revocation_client.get(f"revoked_token:{token}") or revocation_client.get(
+                        f"revoked_user:{decoded.get('userId')}"
+                    ):
                         logging.warning("Token or user is listed in revocation blacklist.")
                         return jsonify({"message": "Token has been revoked!"}), 401
                 except Exception as e:
                     logging.warning(f"Error checking token revocation in Redis: {e}")
-                finally:
-                    revocation_client.close()
 
             if LOGIN_SERVICE_URL and os.getenv("VERIFY_TOKEN_REMOTE", "false").lower() == "true":
                 try:
