@@ -137,13 +137,16 @@ def token_required(f):
             request.user_data = decoded
             logging.info("Token successfully decoded.")
 
-            if redis_client:
+            revocation_client = get_redis_connection()
+            if revocation_client:
                 try:
-                    if redis_client.get(f"revoked_token:{token}") or redis_client.get(f"revoked_user:{decoded.get('userId')}"):
+                    if revocation_client.get(f"revoked_token:{token}") or revocation_client.get(f"revoked_user:{decoded.get('userId')}"):
                         logging.warning("Token or user is listed in revocation blacklist.")
                         return jsonify({"message": "Token has been revoked!"}), 401
                 except Exception as e:
                     logging.warning(f"Error checking token revocation in Redis: {e}")
+                finally:
+                    revocation_client.close()
 
             if LOGIN_SERVICE_URL and os.getenv("VERIFY_TOKEN_REMOTE", "false").lower() == "true":
                 try:
