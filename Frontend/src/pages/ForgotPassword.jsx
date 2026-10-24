@@ -4,20 +4,19 @@ import { AiOutlineExclamationCircle } from "react-icons/ai";
 import { TbLoader } from "react-icons/tb";
 import InputField from "../utils/InputField";
 import OtpInputForm from "../utils/OtpInputForm";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import {
-  SESSION_STORAGE_SHARELINKS_KEY,
-  SESSION_STORAGE_FETCH_STATUS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
-  LOCAL_STORAGE_LOGIN_KEY,
-  LOCAL_STORAGE_GOOGLE_USER,
   BACKEND_API_URL,
   EMAIL_REGEX,
   PASSWORD_REGEX,
+  MAX_OTP_ATTEMPTS,
+  OTP_COOLDOWN_SECONDS,
+  VALIDATION_MESSAGES,
 } from "../utils/constants";
 
 const ForgotPassword = () => {
+  const { logout } = useAuth();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [showConfirmPassword, setShowconfirmPassword] = useState(false);
@@ -30,11 +29,12 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [otpAttemptsLeft, setOtpAttemptsLeft] = useState(MAX_OTP_ATTEMPTS);
   const [otpResent, setOtpResent] = useState(false);
   const [otpResendError, setOtpResendError] = useState("");
   const [canResendOtp, setCanResendOtp] = useState(true);
   const [resendOtpLoading, setResendOtpLoading] = useState(false);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(OTP_COOLDOWN_SECONDS);
 
   const navigate = useNavigate();
 
@@ -46,11 +46,6 @@ const ForgotPassword = () => {
         ? "Set New Password"
         : "Forgot Password";
   }, [emailVerified, otpVerified]);
-
-  useEffect(() => {
-    const token = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
-    setIsLogin(!!token);
-  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -94,22 +89,20 @@ const ForgotPassword = () => {
       return;
     }
 
-    if (!EMAIL_REGEX.test(email)) {
+    if (!EMAIL_REGEX.test(email.trim())) {
       setSuccess("");
-      setError("Invalid email format");
+      setError(VALIDATION_MESSAGES.EMAIL_INVALID);
       return false;
     }
 
     setLoading(true);
 
     try {
-      const emailCheckResponse = await apiFetch(
+      const emailCheckResponse = await apiClient(
         `${BACKEND_API_URL}/api/check-email-exists`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          credentials: "include",
           body: JSON.stringify({ email: email.trim() }),
         }
       );
@@ -117,17 +110,19 @@ const ForgotPassword = () => {
       if (!emailCheckResponse.ok) {
         const data = await emailCheckResponse.json();
         setSuccess("");
-        setError(data.msg || "Email not found.");
+        if (emailCheckResponse.status === 429) {
+          setError(data.msg || VALIDATION_MESSAGES.RATE_LIMITED);
+        } else {
+          setError(data.msg || "Email not found.");
+        }
         return;
       }
 
-      const response = await apiFetch(
+      const response = await apiClient(
         `${BACKEND_API_URL}/api/forgot-password`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          credentials: "include",
           body: JSON.stringify({ email: email.trim() }),
         }
       );
@@ -135,16 +130,20 @@ const ForgotPassword = () => {
       if (!response.ok) {
         const data = await response.json();
         setSuccess("");
-        setError(data.msg || "Server error, please try again.");
+        if (response.status === 429) {
+          setError(data.msg || VALIDATION_MESSAGES.RATE_LIMITED);
+        } else {
+          setError(data.msg || response.errorMessage || "Server error, please try again.");
+        }
         return;
       }
 
-      const data = await response.json();
       setError("");
       setSuccess("OTP Sent Successfully");
       setEmailVerified(true);
       setOtpResent(true);
-    } catch (err) {
+      setOtpAttemptsLeft(MAX_OTP_ATTEMPTS);
+    } catch {
       setSuccess("");
       setError("Server error, please try again.");
     } finally {
@@ -157,13 +156,11 @@ const ForgotPassword = () => {
     setOtpResendError("");
 
     try {
-      const response = await apiFetch(
+      const response = await apiClient(
         `${BACKEND_API_URL}/api/resend-otp?forgot-password=true`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          credentials: "include",
           body: JSON.stringify({
             email: email.trim(),
           }),
@@ -172,17 +169,21 @@ const ForgotPassword = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 429) {
+          throw new Error(errorData.msg || VALIDATION_MESSAGES.RATE_LIMITED);
+        }
         throw new Error(errorData.msg || "Error resending OTP.");
       }
 
       setOtpResent(true);
       setCanResendOtp(false);
-      setCountdown(30);
+      setCountdown(OTP_COOLDOWN_SECONDS);
+      setOtpAttemptsLeft(MAX_OTP_ATTEMPTS);
       setError("");
       setSuccess("OTP resent successfully! Check your email.");
     } catch (err) {
       setSuccess("");
-      setOtpResendError("Server error while resending OTP.");
+      setOtpResendError(err.message || "Server error while resending OTP.");
     } finally {
       handleClearOTPEror();
       setResendOtpLoading(false);
@@ -194,9 +195,10 @@ const ForgotPassword = () => {
     if (!canResendOtp) {
       timer = setInterval(() => {
         setCountdown((prev) => {
-          if (prev === 1) {
+          if (prev <= 1) {
             clearInterval(timer);
             setCanResendOtp(true);
+            return OTP_COOLDOWN_SECONDS;
           }
           return prev - 1;
         });
@@ -216,11 +218,9 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const response = await apiFetch(`${BACKEND_API_URL}/api/reset-password`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/reset-password`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "include",
         body: JSON.stringify({
           email: email.trim(),
           otp: otp.trim?.() ?? otp,
@@ -229,16 +229,27 @@ const ForgotPassword = () => {
 
       if (!response.ok) {
         const data = await response.json();
+        const nextAttempts = Math.max(0, otpAttemptsLeft - 1);
+        setOtpAttemptsLeft(nextAttempts);
         setSuccess("");
-        setError(data.msg || "Invalid OTP or OTP expired.");
+
+        if (response.status === 429 || nextAttempts === 0) {
+          setError(
+            data.msg ||
+            VALIDATION_MESSAGES.OTP_EXPIRED_OR_TOO_MANY_ATTEMPTS
+          );
+        } else {
+          setError(
+            `${data.msg || "Invalid OTP or OTP expired."}. ${nextAttempts} attempt${nextAttempts === 1 ? "" : "s"} remaining.`
+          );
+        }
         return;
       }
 
-      const data = await response.json();
       setError("");
       setSuccess("OTP Verified Successfully");
       setOtpVerified(true);
-    } catch (err) {
+    } catch {
       setSuccess("");
       setError("Server error, please try again.");
     } finally {
@@ -265,20 +276,18 @@ const ForgotPassword = () => {
       !PASSWORD_REGEX.test(confirmPassword)
     ) {
       setSuccess("");
-      setError("Invalid password format");
+      setError(VALIDATION_MESSAGES.PASSWORD_INVALID);
       return false;
     }
 
     setLoading(true);
 
     try {
-      const response = await apiFetch(
+      const response = await apiClient(
         `${BACKEND_API_URL}/api/update-password`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          credentials: "include",
           body: JSON.stringify({
             email: email.trim(),
             otp: otp.trim?.() ?? otp,
@@ -290,26 +299,22 @@ const ForgotPassword = () => {
       if (!response.ok) {
         const data = await response.json();
         setSuccess("");
-        setError(data.msg || "Error updating password.");
+        if (response.status === 429) {
+          setError(data.msg || VALIDATION_MESSAGES.RATE_LIMITED);
+        } else {
+          setError(data.msg || "Error updating password.");
+        }
         return;
       }
 
-      const data = await response.json();
       setError("");
       setSuccess("Password reset successfully");
 
-      setTimeout(() => {
+      setTimeout(async () => {
+        await logout();
         navigate("/login");
-        localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
-        localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
-        localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
-        localStorage.removeItem(LOCAL_STORAGE_GOOGLE_USER);
-        sessionStorage.removeItem(SESSION_STORAGE_FETCH_STATUS_KEY);
-        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-
-        location.reload();
       }, 500);
-    } catch (err) {
+    } catch {
       setSuccess("");
       setError("Server error, please try again.");
     } finally {
@@ -397,7 +402,17 @@ const ForgotPassword = () => {
                 </p>
               </div>
             </div>
-            <OtpInputForm onOtpChange={handleOtpChange} />{" "}
+            <OtpInputForm onOtpChange={handleOtpChange} />
+            <div className="text-center font-mono text-xs text-gray-500 dark:text-gray-400 my-2">
+              Remaining attempts:{" "}
+              <span
+                className={`font-bold ${
+                  otpAttemptsLeft <= 2 ? "text-red-500" : "text-blue-500"
+                }`}
+              >
+                {otpAttemptsLeft} of {MAX_OTP_ATTEMPTS}
+              </span>
+            </div>
             {error && (
               <p className="text-red-600 dark:text-red-400 text-center my-4">
                 {error}

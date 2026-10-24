@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import ShareLinkModal from "../utils/ShareLinkModal.js";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
   GENAI_API_URL,
   TEMP_SHARE_API_URL,
   BACKEND_API_URL,
@@ -48,11 +47,11 @@ const CodeEditor = ({
   const [timeoutId, setTimeoutId] = useState(null);
   const [loadingActionRun, setLoadingActionRun] = useState(null);
   const [loadingActionGen, setLoadingActionGen] = useState(null);
+  const { token, isLoggedIn } = useAuth();
   const [loadingActionRefactor, setLoadingActionRefactor] = useState(null);
   const [isGenerateBtnPressed, setisGenerateBtnPressed] = useState(false);
   const [isRefactorBtnPressed, setisRefactorBtnPressed] = useState(false);
   const [isDownloadBtnPressed, setisDownloadBtnPressed] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
 
   const terminalRef = useRef(null);
@@ -113,11 +112,6 @@ const CodeEditor = ({
       setOutput("Run your code to see output here...");
     }
 
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (token) {
-      setIsLoggedIn(true);
-    }
-
     const handleResize = () => {
       const width = window.innerWidth;
       if (width > 1024) {
@@ -168,17 +162,8 @@ const CodeEditor = ({
     setisDownloadBtnPressed(true);
 
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-      const headers = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const response = await apiFetch(apiEndpoint, {
+      const response = await apiClient(apiEndpoint, {
         method: "POST",
-        headers,
         body: JSON.stringify({
           language: language,
           code: code,
@@ -379,15 +364,10 @@ const CodeEditor = ({
       });
 
       try {
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-        if (!token) throw new Error("Authentication token missing.");
+        if (!token && !isLoggedIn) throw new Error("Authentication token missing.");
 
-        const response = await apiFetch(`${GENAI_API_URL}/improve-prompt`, {
+        const response = await apiClient(`${GENAI_API_URL}/improve-prompt`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             topic: finalPrompt,
             language: language,
@@ -463,15 +443,10 @@ const CodeEditor = ({
     setisGenerateBtnPressed(true);
 
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-      if (!token) throw new Error("Authentication token missing.");
+      if (!token && !isLoggedIn) throw new Error("Authentication token missing.");
 
-      const response = await apiFetch(`${GENAI_API_URL}/generate_code`, {
+      const response = await apiClient(`${GENAI_API_URL}/generate_code`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           problem_description: finalPrompt,
           language: language,
@@ -587,18 +562,12 @@ const CodeEditor = ({
       setIsEditorReadOnly(true);
       setisRefactorBtnPressed(true);
 
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-      if (!token) {
+      if (!token && !isLoggedIn) {
         return;
       }
 
-      const response = await apiFetch(`${GENAI_API_URL}/refactor_code`, {
+      const response = await apiClient(`${GENAI_API_URL}/refactor_code`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           problem_description: prompt.trim() || null,
           language,
@@ -745,20 +714,14 @@ const CodeEditor = ({
         expiryTime,
       });
 
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-      if (!token) {
+      if (!token && !isLoggedIn) {
         return;
       }
 
-      const response = await apiFetch(
+      const response = await apiClient(
         `${TEMP_SHARE_API_URL}/temp-file-upload`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: load,
         }
       );
@@ -837,18 +800,12 @@ const CodeEditor = ({
   };
 
   const getRunCodeCount = async (language) => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-    if (!token) {
+    if (!token && !isLoggedIn) {
       return;
     }
 
-    const response = await apiFetch(`${BACKEND_API_URL}/api/runCode/count`, {
+    const response = await apiClient(`${BACKEND_API_URL}/api/runCode/count`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify({ language }),
     });
 
@@ -858,20 +815,14 @@ const CodeEditor = ({
   };
 
   const getGenerateCodeCount = async () => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-    if (!token) {
+    if (!token && !isLoggedIn) {
       return;
     }
 
-    const response = await apiFetch(
+    const response = await apiClient(
       `${BACKEND_API_URL}/api/generateCode/count`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           language: language,
         }),
@@ -884,20 +835,14 @@ const CodeEditor = ({
   };
 
   const getRefactorCodeCount = async () => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-    if (!token) {
+    if (!token && !isLoggedIn) {
       return;
     }
 
-    const response = await apiFetch(
+    const response = await apiClient(
       `${BACKEND_API_URL}/api/refactorCode/count`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           language: language,
         }),
@@ -911,20 +856,14 @@ const CodeEditor = ({
 
   const saveSharedLinkCount = async (shareId, title, expiryTime) => {
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-      if (!token) {
+      if (!token && !isLoggedIn) {
         return;
       }
 
-      const countResponse = await apiFetch(
+      const countResponse = await apiClient(
         `${BACKEND_API_URL}/api/sharedLink/count`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             shareId,
             title,

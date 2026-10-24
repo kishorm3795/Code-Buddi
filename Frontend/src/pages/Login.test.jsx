@@ -17,12 +17,18 @@ vi.mock('@react-oauth/google', () => ({
   ),
 }));
 
-// Mock apiFetch - must be at top level for hoisting
-vi.mock('../utils/apifetch', () => ({
-  apiFetch: vi.fn(),
-}));
+// Mock apiClient - must be at top level for hoisting
+vi.mock('../api/client', () => {
+  const fn = vi.fn();
+  return {
+    apiClient: fn,
+    apiFetch: fn,
+    default: fn,
+  };
+});
 
-import { apiFetch } from '../utils/apifetch';
+import { apiClient } from '../api/client';
+const apiFetch = apiClient;
 
 const renderLogin = () => {
   return render(
@@ -156,6 +162,31 @@ describe('Login form submission', () => {
 
     await waitFor(() => {
       expect(apiFetch).toHaveBeenCalled();
+    });
+  });
+
+  it('displays friendly error message on 429 rate limit response', async () => {
+    apiClient.mockResolvedValue({
+      ok: false,
+      status: 429,
+      errorMessage: 'Too many requests, please try again after 15 minutes',
+      json: () => Promise.resolve({ msg: 'Too many requests, please try again after 15 minutes' }),
+    });
+
+    renderLogin();
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    const form = getLoginForm();
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('⚠ Too many requests, please try again after 15 minutes')
+      ).toBeInTheDocument();
     });
   });
 });

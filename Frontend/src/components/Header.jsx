@@ -1,128 +1,18 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FaSpinner, FaBarsStaggered } from "react-icons/fa6";
 import { SiIfixit } from "react-icons/si";
 import { RxMoon, RxSun } from "react-icons/rx";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
-import {
-  SESSION_STORAGE_SHARELINKS_KEY,
-  SESSION_STORAGE_FETCH_STATUS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
-  LOCAL_STORAGE_LOGIN_KEY,
-  LOCAL_STORAGE_THEME_KEY,
-  LOCAL_STORAGE_GOOGLE_USER,
-  BACKEND_API_URL,
-} from "../utils/constants";
+import { useAuth } from "../hooks/useAuth";
 
 const Header = ({ isDarkMode, toggleTheme }) => {
-  const [username, setUsername] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn, username, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isLoading, setLoading] = useState(true);
-
-  const baseUrl = window.location.origin;
-
-  const clearAuthState = () => {
-    localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_GOOGLE_USER);
-    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-    sessionStorage.removeItem(SESSION_STORAGE_FETCH_STATUS_KEY);
-  };
-
-  useEffect(() => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    const storedUsername = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
-    const login = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
-
-    if (token && storedUsername && login === "true") {
-      fetchUserData(token, storedUsername);
-    } else {
-      clearAuthState();
-      setIsLoggedIn(false);
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.key === LOCAL_STORAGE_GOOGLE_USER) {
-        clearAuthState();
-        setIsLoggedIn(false);
-        setUsername("");
-        location.reload();
-      }
-    };
-
-    const timerId = setTimeout(() => {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-      if (!token && !isLoggedIn) return;
-      window.addEventListener("storage", handleStorageChange);
-    }, 2000);
-
-    return () => {
-      clearTimeout(timerId);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [isLoggedIn]);
-
-  useEffect(() => {
-    (() => {
-      const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY);
-      const isDarkMode = savedTheme === "dark";
-      document.documentElement.classList.toggle("dark", isDarkMode);
-
-      const validKeys = [
-        LOCAL_STORAGE_THEME_KEY,
-        LOCAL_STORAGE_TOKEN_KEY,
-        LOCAL_STORAGE_USERNAME_KEY,
-        LOCAL_STORAGE_LOGIN_KEY,
-      ];
-
-      window.addEventListener("storage", (event) => {
-        if (validKeys.includes(event.key)) {
-          location.reload();
-        }
-      });
-    })();
-  }, []);
-
-  const fetchUserData = async (token, storedUsername) => {
-    try {
-      const response = await fetch(`${BACKEND_API_URL}/api/protected`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.username) {
-        if (data.username !== storedUsername) {
-          clearAuthState();
-          setIsLoggedIn(false);
-          setUsername("");
-          location.reload();
-          return;
-        }
-
-        setUsername(data.username);
-        setIsLoggedIn(true);
-      } else {
-        clearAuthState();
-        setIsLoggedIn(false);
-        setUsername("");
-        location.reload();
-      }
-    } catch (error) {
-      location.reload();
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isLoading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const baseUrl = "";
 
   const handleLogout = () => {
     Swal.fire({
@@ -137,21 +27,20 @@ const Header = ({ isDarkMode, toggleTheme }) => {
       allowOutsideClick: false,
       background: isDarkMode ? '#1e293b' : '#ffffff',
       titleColor: isDarkMode ? '#00ff00' : '#0f172a',
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        clearAuthState();
-        setIsLoggedIn(false);
-        setUsername("");
-        location.reload();
+        await logout();
+        navigate("/login");
       }
     });
   };
 
-  const formatUsername = (username) => {
-    if (username.length > 15) {
-      return `${username.slice(0, 5)}...${username.slice(-5)}`;
+  const formatUsername = (user) => {
+    if (!user) return "";
+    if (user.length > 15) {
+      return `${user.slice(0, 5)}...${user.slice(-5)}`;
     }
-    return username;
+    return user;
   };
 
   useEffect(() => {
@@ -180,7 +69,7 @@ const Header = ({ isDarkMode, toggleTheme }) => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link
-              to={`${baseUrl}`}
+              to={`${baseUrl || '/'}`}
               aria-label="Go to CodeBuddi homepage"
               className="flex items-center space-x-2 group relative"
             >

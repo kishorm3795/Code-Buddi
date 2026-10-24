@@ -2,11 +2,18 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
 // Mock localStorage
+let localStore: Record<string, string> = {};
 const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  getItem: vi.fn((key: string) => (key in localStore ? localStore[key] : null)),
+  setItem: vi.fn((key: string, value: string) => {
+    localStore[key] = String(value);
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete localStore[key];
+  }),
+  clear: vi.fn(() => {
+    localStore = {};
+  }),
 };
 
 Object.defineProperty(window, 'localStorage', {
@@ -15,11 +22,18 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Mock sessionStorage
+let sessionStore: Record<string, string> = {};
 const sessionStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  getItem: vi.fn((key: string) => (key in sessionStore ? sessionStore[key] : null)),
+  setItem: vi.fn((key: string, value: string) => {
+    sessionStore[key] = String(value);
+  }),
+  removeItem: vi.fn((key: string) => {
+    delete sessionStore[key];
+  }),
+  clear: vi.fn(() => {
+    sessionStore = {};
+  }),
 };
 
 Object.defineProperty(window, 'sessionStorage', {

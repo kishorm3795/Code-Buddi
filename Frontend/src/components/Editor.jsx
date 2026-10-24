@@ -4,13 +4,13 @@ import MonacoEditor from "@monaco-editor/react";
 import ShareLinkModal from "../utils/ShareLinkModal.js";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
   GENAI_API_URL,
   TEMP_SHARE_API_URL,
   BACKEND_API_URL,
   MAX_SIZE,
 } from "../utils/constants";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import blocker from "../utils/blocker.js";
 import { useNavigate } from "react-router-dom";
 
@@ -118,6 +118,7 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         };
   });
 
+  const { token, isLoggedIn } = useAuth();
   const [deviceType, setDeviceType] = useState("pc");
   const [loadingAction, setLoadingAction] = useState(null);
   const [generateBtnTxt, generatesetBtnTxt] = useState("Generate");
@@ -125,7 +126,6 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   const [isGenerateBtnPressed, setisGenerateBtnPressed] = useState(false);
   const [isRefactorBtnPressed, setisRefactorBtnPressed] = useState(false);
   const [isPreviewEnabled, setIsPreviewEnabled] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOverlayVisible, setIsOverlayVisible] = useState(false);
@@ -164,11 +164,6 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   useEffect(() => {
     const storedCode = JSON.stringify(code);
     sessionStorage.setItem(storageKey, storedCode);
-
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (token) {
-      setIsLoggedIn(true);
-    }
   }, [code]);
 
   useEffect(() => {
@@ -435,17 +430,12 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     let result = "";
 
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-      if (!token) throw new Error("Token not found");
+      if (!token && !isLoggedIn) throw new Error("Token not found");
 
-      const response = await apiFetch(
+      const response = await apiClient(
         `${GENAI_API_URL}/htmlcssjsgenerate-code`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify(data),
         }
       );
@@ -535,15 +525,10 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         },
       });
       try {
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-        if (!token) throw new Error("Token not found");
+        if (!token && !isLoggedIn) throw new Error("Token not found");
 
-        const response = await apiFetch(`${GENAI_API_URL}/improve-prompt`, {
+        const response = await apiClient(`${GENAI_API_URL}/improve-prompt`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             topic: finalPrompt,
             language: "htmlcssjs",
@@ -849,21 +834,16 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
     setIsEditorReadOnly(true);
 
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-      if (!token) return;
+      if (!token && !isLoggedIn) return;
 
       let editorCode = JSON.parse(sessionStorage.getItem(storageKey));
       let { html, css, javascript } = editorCode;
 
       const refactor = async (type, code) => {
-        const response = await apiFetch(
+        const response = await apiClient(
           `${GENAI_API_URL}/htmlcssjsrefactor-code`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
             body: JSON.stringify({
               html: code.html || html,
               css: code.css || css,
@@ -1021,20 +1001,14 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
         expiryTime,
       });
 
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-      if (!token) {
+      if (!token && !isLoggedIn) {
         return;
       }
 
-      const response = await apiFetch(
+      const response = await apiClient(
         `${TEMP_SHARE_API_URL}/temp-file-upload`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: load,
         }
       );
@@ -1112,20 +1086,14 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   };
 
   const getGenerateCodeCount = async () => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-    if (!token) {
+    if (!token && !isLoggedIn) {
       return;
     }
 
-    const response = await apiFetch(
+    const response = await apiClient(
       `${BACKEND_API_URL}/api/generateCode/count`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           language: "HtmlJsCss",
         }),
@@ -1138,20 +1106,14 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
   };
 
   const getRefactorCodeCount = async () => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-    if (!token) {
+    if (!token && !isLoggedIn) {
       return;
     }
 
-    const response = await apiFetch(
+    const response = await apiClient(
       `${BACKEND_API_URL}/api/refactorCode/count`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           language: "HtmlJsCss",
         }),
@@ -1165,20 +1127,14 @@ const Editor = ({ isDarkMode, value, title, shareIdData }) => {
 
   const saveSharedLinkCount = async (shareId, title, expiryTime) => {
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-      if (!token) {
+      if (!token && !isLoggedIn) {
         return;
       }
 
-      const countResponse = await apiFetch(
+      const countResponse = await apiClient(
         `${BACKEND_API_URL}/api/sharedLink/count`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({
             shareId,
             title,

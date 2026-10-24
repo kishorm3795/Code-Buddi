@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import {
   SESSION_STORAGE_SHARELINKS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
-  LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
   TEMP_SHARE_API_URL,
 } from "../utils/constants";
@@ -16,8 +14,8 @@ import { MdDone } from "react-icons/md";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 
 const SharedLinks = () => {
+  const { isLoggedIn, token, username } = useAuth();
   const [sharedLinks, setSharedLinks] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [buttonStates, setButtonStates] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -49,20 +47,13 @@ const SharedLinks = () => {
 
   const fetchSharedLinks = async () => {
     try {
-      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-      const isLogin = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
-
-      if (!token || !isLogin) {
+      if (!isLoggedIn) {
         sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
         return;
       }
 
-      const response = await fetch(`${BACKEND_API_URL}/api/user/sharedLinks`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/user/sharedLinks`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok)
@@ -112,25 +103,17 @@ const SharedLinks = () => {
           },
         });
 
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
-        const linkResponse = await apiFetch(
+        const linkResponse = await apiClient(
           `${BACKEND_API_URL}/api/user/sharedLink/${shareId}`,
           {
             method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
           }
         );
 
-        const fileResponse = await apiFetch(
+        const fileResponse = await apiClient(
           `${TEMP_SHARE_API_URL}/file/${shareId}/delete`,
           {
             method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
           }
         );
 
@@ -247,22 +230,9 @@ const SharedLinks = () => {
   };
 
   useEffect(() => {
-    const isLogin = localStorage.getItem(LOCAL_STORAGE_LOGIN_KEY);
-
-    if (!isLogin) {
-      sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-      setIsLoggedIn(false);
-      return;
-    }
-
-    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
-    if (username) {
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-    }
-
     if (!isLoggedIn) {
+      sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+      setSharedLinks([]);
       return;
     }
 
@@ -270,7 +240,11 @@ const SharedLinks = () => {
     if (sharedLink === null || sharedLink === "[]") {
       fetchSharedLinks();
     } else {
-      setSharedLinks(JSON.parse(sharedLink));
+      try {
+        setSharedLinks(JSON.parse(sharedLink));
+      } catch {
+        fetchSharedLinks();
+      }
     }
 
     const handleResize = () => {
