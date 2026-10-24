@@ -1,23 +1,30 @@
 import React, { useState, useEffect } from "react";
 import InputField from "../utils/InputField";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import {
-  SESSION_STORAGE_SHARELINKS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
-  LOCAL_STORAGE_LOGIN_KEY,
-  LOCAL_STORAGE_GOOGLE_USER,
   BACKEND_API_URL,
   USERNAME_REGEX,
   PASSWORD_REGEX,
+  RESERVED_USERNAMES,
+  VALIDATION_MESSAGES,
 } from "../utils/constants";
 import { useNavigate } from "react-router-dom";
 import { TbLoader } from "react-icons/tb";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 
 const Accounts = () => {
+  const {
+    token,
+    username: authUsername,
+    isGoogleUser: authIsGoogleUser,
+    isLoggedIn,
+    logout,
+    updateUsername: setAuthUsername,
+  } = useAuth();
+
   const [formData, setFormData] = useState({
-    username: "",
+    username: authUsername || "",
     email: "",
     password: "",
     newPassword: "",
@@ -26,7 +33,7 @@ const Accounts = () => {
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [isPasswordVerified, setIsPasswordVerified] = useState(false);
-  const [isGoogleAccount, setIsGoogleAccount] = useState(false);
+  const [isGoogleAccount, setIsGoogleAccount] = useState(authIsGoogleUser);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -36,61 +43,40 @@ const Accounts = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const username = localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY);
-
+    const currentName = authUsername || "User";
     document.title = `Account - ${
-      username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()
+      currentName.charAt(0).toUpperCase() + currentName.slice(1).toLowerCase()
     }`;
 
-    const isGoogleUser =
-      localStorage.getItem(LOCAL_STORAGE_GOOGLE_USER) === "true";
-    if (isGoogleUser) {
+    if (authIsGoogleUser) {
+      setIsGoogleAccount(true);
       fetchUserData();
     }
-  }, []);
+  }, [authUsername, authIsGoogleUser]);
 
   const clearSession = () => {
-    localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_USERNAME_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_LOGIN_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_GOOGLE_USER);
-    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+    logout();
   };
 
   const fetchUserData = async () => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (!token) {
-      navigate("/login");
-      location.reload();
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const headers = { Authorization: `Bearer ${token}` };
       let response;
-      let data;
-
-      const isGoogleUser =
-        localStorage.getItem(LOCAL_STORAGE_GOOGLE_USER) === "true";
-
-      if (isGoogleUser) {
-        response = await fetch(`${BACKEND_API_URL}/api/protected`, {
+      if (authIsGoogleUser || isGoogleAccount) {
+        response = await apiClient(`${BACKEND_API_URL}/api/protected`, {
           method: "GET",
-          headers,
         });
       } else {
-        response = await apiFetch(`${BACKEND_API_URL}/api/account-details`, {
+        response = await apiClient(`${BACKEND_API_URL}/api/account-details`, {
           method: "POST",
-          headers,
         });
       }
 
-      data = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        setErrorMessage(data.msg || "Failed to fetch user data");
+        setErrorMessage(response.errorMessage || data.msg || "Failed to fetch user data");
         return;
       }
 
@@ -102,11 +88,11 @@ const Accounts = () => {
         }));
       }
 
-      if (isGoogleUser) {
+      if (authIsGoogleUser || isGoogleAccount) {
         setIsGoogleAccount(true);
         setIsPasswordVerified(true);
       }
-    } catch (err) {
+    } catch {
       setErrorMessage("Failed to fetch user data");
     } finally {
       setLoading(false);
@@ -117,13 +103,6 @@ const Accounts = () => {
     e.preventDefault();
 
     if (isGoogleAccount) {
-      return;
-    }
-
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (!token) {
-      navigate("/login");
-      location.reload();
       return;
     }
 
@@ -142,15 +121,11 @@ const Accounts = () => {
     try {
       setLoading(true);
 
-      const response = await apiFetch(
+      const response = await apiClient(
         `${BACKEND_API_URL}/api/verify-password`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ password: currentPassword.trim() }),
+          body: JSON.stringify({ password: currentPassword }),
         }
       );
 
@@ -160,9 +135,9 @@ const Accounts = () => {
         setIsPasswordVerified(true);
         setErrorMessage("");
       } else {
-        setErrorMessage(data.msg || "Password verification failed.");
+        setErrorMessage(response.errorMessage || data.msg || "Password verification failed.");
       }
-    } catch (error) {
+    } catch {
       setErrorMessage("Error verifying password.");
     } finally {
       setLoading(false);
@@ -171,13 +146,6 @@ const Accounts = () => {
 
   const handleUpdateUsername = async (e) => {
     e.preventDefault();
-
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (!token) {
-      navigate("/login");
-      location.reload();
-      return;
-    }
 
     if (!isPasswordVerified) {
       setErrorMessage("Please verify your password first.");
@@ -193,6 +161,11 @@ const Accounts = () => {
 
     if (username.length < 5 || username.length > 30) {
       setErrorMessage("Username should be between 5 and 30 characters");
+      return false;
+    }
+
+    if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+      setErrorMessage(VALIDATION_MESSAGES.USERNAME_RESERVED);
       return false;
     }
 
@@ -218,14 +191,10 @@ const Accounts = () => {
 
           setLoading(true);
 
-          const response = await apiFetch(
+          const response = await apiClient(
             `${BACKEND_API_URL}/api/change-username`,
             {
               method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
               body: JSON.stringify({ newUsername: username.trim() }),
             }
           );
@@ -235,7 +204,7 @@ const Accounts = () => {
           Swal.close();
 
           if (response.ok) {
-            localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, username);
+            setAuthUsername(username);
 
             Swal.fire({
               title: "Updated!",
@@ -244,14 +213,13 @@ const Accounts = () => {
               timer: 1500,
             }).then(() => {
               navigate(`/account/${username}`);
-              location.reload();
             });
 
             fetchUserData();
           } else {
-            setErrorMessage(data.msg || "Failed to update username");
+            setErrorMessage(response.errorMessage || data.msg || "Failed to update username");
           }
-        } catch (error) {
+        } catch {
           Swal.close();
           setErrorMessage("Error updating username");
         } finally {
@@ -299,13 +267,6 @@ const Accounts = () => {
       return;
     }
 
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (!token) {
-      navigate("/login");
-      location.reload();
-      return;
-    }
-
     Swal.fire({
       title: "Are you sure?",
       text: "Do you want to update your password?",
@@ -328,14 +289,10 @@ const Accounts = () => {
 
           setLoading(true);
 
-          const response = await apiFetch(
+          const response = await apiClient(
             `${BACKEND_API_URL}/api/change-password`,
             {
               method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
               body: JSON.stringify({
                 newPassword: newPassword,
                 confirmPassword: confirmPassword,
@@ -348,17 +305,12 @@ const Accounts = () => {
           Swal.close();
 
           if (response.ok) {
-            Swal.close();
-
             Swal.fire({
               title: "Updated!",
               text: "Your password has been updated successfully.",
               icon: "success",
               timer: 2000,
             }).then(() => {
-              navigate(`/account/${username}`);
-              location.reload();
-
               setFormData({
                 username: "",
                 email: "",
@@ -369,14 +321,12 @@ const Accounts = () => {
               });
 
               clearSession();
-
               navigate("/login");
-              location.reload();
             });
           } else {
-            setErrorMessage(data.msg || "Failed to update password");
+            setErrorMessage(response.errorMessage || data.msg || "Failed to update password");
           }
-        } catch (error) {
+        } catch {
           Swal.close();
           setErrorMessage("Error updating password");
         } finally {
@@ -403,22 +353,12 @@ const Accounts = () => {
       allowOutsideClick: false,
     }).then(async (result) => {
       if (result.isConfirmed) {
-        const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-        if (!token) {
-          navigate("/");
-          location.reload();
-          return;
-        }
-
         try {
           setDelBtnText("Deleting...");
           setLoading(true);
 
-          const response = await apiFetch(`${BACKEND_API_URL}/api/account`, {
+          const response = await apiClient(`${BACKEND_API_URL}/api/account`, {
             method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
           });
 
           const data = await response.json();
@@ -433,12 +373,11 @@ const Accounts = () => {
               timer: 1500,
             }).then(() => {
               navigate("/");
-              location.reload();
             });
           } else {
-            setErrorMessage(data.msg || "Failed to delete account");
+            setErrorMessage(response.errorMessage || data.msg || "Failed to delete account");
           }
-        } catch (error) {
+        } catch {
           setErrorMessage("Error deleting account");
         } finally {
           setLoading(false);

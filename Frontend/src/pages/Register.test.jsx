@@ -31,12 +31,18 @@ vi.mock('../utils/OtpInputForm', () => ({
   ),
 }));
 
-// Mock apiFetch - must be at top level for hoisting
-vi.mock('../utils/apifetch', () => ({
-  apiFetch: vi.fn(),
-}));
+// Mock apiClient - must be at top level for hoisting
+vi.mock('../api/client', () => {
+  const fn = vi.fn();
+  return {
+    apiClient: fn,
+    apiFetch: fn,
+    default: fn,
+  };
+});
 
-import { apiFetch } from '../utils/apifetch';
+import { apiClient } from '../api/client';
+const apiFetch = apiClient;
 
 const renderRegister = () => {
   return render(
@@ -113,6 +119,23 @@ describe('Register', () => {
     });
   });
 
+  it('shows validation error for reserved username', async () => {
+    renderRegister();
+    const usernameInput = screen.getByLabelText(/username/i);
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    const form = getRegisterForm();
+
+    fireEvent.change(usernameInput, { target: { value: 'admin' } });
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByText('⚠ This username is reserved. Please choose another one.')).toBeInTheDocument();
+    });
+  });
+
   it('shows validation error for short password', async () => {
     renderRegister();
     const usernameInput = screen.getByLabelText(/username/i);
@@ -120,7 +143,7 @@ describe('Register', () => {
     const passwordInput = screen.getByLabelText(/password/i);
     const form = getRegisterForm();
 
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
+    fireEvent.change(usernameInput, { target: { value: 'john_doe' } });
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'short' } });
     fireEvent.submit(form);
@@ -168,7 +191,7 @@ describe('Register OTP flow', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows OTP input after successful registration', async () => {
+  it('shows OTP input and remaining attempts after registration', async () => {
     apiFetch.mockResolvedValue({
       ok: false,
       json: () => Promise.resolve({ msg: 'Email not verified.' }),
@@ -180,13 +203,78 @@ describe('Register OTP flow', () => {
     const passwordInput = screen.getByLabelText(/password/i);
     const form = getRegisterForm();
 
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
+    fireEvent.change(usernameInput, { target: { value: 'john_doe' } });
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.submit(form);
 
     await waitFor(() => {
       expect(screen.getByText('Verify Email')).toBeInTheDocument();
+      expect(screen.getByText(/Remaining attempts:/i)).toBeInTheDocument();
+      expect(screen.getByText(/5 of 5/i)).toBeInTheDocument();
+    });
+  });
+
+  it('decrements remaining OTP attempts on failed verification', async () => {
+    apiFetch
+      .mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ msg: 'Email not verified.' }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ msg: 'Invalid OTP' }),
+      });
+
+    renderRegister();
+    const usernameInput = screen.getByLabelText(/username/i);
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    const form = getRegisterForm();
+
+    fireEvent.change(usernameInput, { target: { value: 'john_doe' } });
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByText('Verify Email')).toBeInTheDocument();
+    });
+
+    const otpInput = screen.getByTestId('otp-input');
+    fireEvent.change(otpInput, { target: { value: '000000' } });
+
+    const verifyButton = screen.getByRole('button', { name: /verify otp/i });
+    fireEvent.click(verifyButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/4 of 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 attempts remaining/i)).toBeInTheDocument();
+    });
+  });
+
+  it('displays rate limit friendly message on 429 response', async () => {
+    apiFetch.mockResolvedValue({
+      ok: false,
+      status: 429,
+      errorMessage: 'Too many requests. Please wait a few minutes before trying again.',
+      json: () => Promise.resolve({ msg: 'Too many requests. Please wait a few minutes before trying again.' }),
+    });
+
+    renderRegister();
+    const usernameInput = screen.getByLabelText(/username/i);
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/password/i);
+    const form = getRegisterForm();
+
+    fireEvent.change(usernameInput, { target: { value: 'john_doe' } });
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Too many requests/i)).toBeInTheDocument();
     });
   });
 });
@@ -215,7 +303,7 @@ describe('Register form submission', () => {
     const passwordInput = screen.getByLabelText(/password/i);
     const form = getRegisterForm();
 
-    fireEvent.change(usernameInput, { target: { value: 'testuser' } });
+    fireEvent.change(usernameInput, { target: { value: 'john_doe' } });
     fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
     fireEvent.change(passwordInput, { target: { value: 'password123' } });
     fireEvent.submit(form);

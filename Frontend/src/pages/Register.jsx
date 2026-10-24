@@ -5,20 +5,21 @@ import { TbLoader } from "react-icons/tb";
 import { GoogleLogin } from "@react-oauth/google";
 import InputField from "../utils/InputField";
 import OtpInputForm from "../utils/OtpInputForm";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import {
-  SESSION_STORAGE_SHARELINKS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
-  LOCAL_STORAGE_LOGIN_KEY,
-  LOCAL_STORAGE_GOOGLE_USER,
   BACKEND_API_URL,
   USERNAME_REGEX,
   EMAIL_REGEX,
   PASSWORD_REGEX,
+  RESERVED_USERNAMES,
+  MAX_OTP_ATTEMPTS,
+  OTP_COOLDOWN_SECONDS,
+  VALIDATION_MESSAGES,
 } from "../utils/constants";
 
 const Register = () => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -32,10 +33,11 @@ const Register = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
+  const [otpAttemptsLeft, setOtpAttemptsLeft] = useState(MAX_OTP_ATTEMPTS);
   const [otpResent, setOtpResent] = useState(false);
   const [otpResendError, setOtpResendError] = useState("");
   const [canResendOtp, setCanResendOtp] = useState(true);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(OTP_COOLDOWN_SECONDS);
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendOtpLoading, setResendOtpLoading] = useState(false);
   const [wrongEmailLoading, setWrongEmailLoading] = useState(false);
@@ -47,13 +49,8 @@ const Register = () => {
   }, []);
 
   const handleAuthSuccess = (data) => {
-    localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, data.token);
-    localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, data.username);
-    localStorage.setItem(LOCAL_STORAGE_LOGIN_KEY, "true");
-    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-    localStorage.setItem(LOCAL_STORAGE_GOOGLE_USER, data.isgoogleuser);
+    login(data);
     navigate(window.history.length > 2 ? -1 : "/");
-    location.reload();
   };
 
   const handleInputChange = (e) => {
@@ -88,29 +85,32 @@ const Register = () => {
     const newPassword = formData.newPassword.trim();
 
     if (!EMAIL_REGEX.test(email)) {
-      setError("Invalid email format");
+      setError(VALIDATION_MESSAGES.EMAIL_INVALID);
       return false;
     }
 
     if (!USERNAME_REGEX.test(username)) {
-      setError(
-        "Username can only contain letters, numbers, underscores, hyphens, and periods (5-30 characters)."
-      );
+      setError(VALIDATION_MESSAGES.USERNAME_INVALID);
       return false;
     }
 
     if (username.length < 5 || username.length > 30) {
-      setError("Username should be between 5 and 30 characters");
+      setError(VALIDATION_MESSAGES.USERNAME_LENGTH);
+      return false;
+    }
+
+    if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
+      setError(VALIDATION_MESSAGES.USERNAME_RESERVED);
       return false;
     }
 
     if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters long");
+      setError(VALIDATION_MESSAGES.PASSWORD_SHORT);
       return false;
     }
 
     if (!PASSWORD_REGEX.test(newPassword)) {
-      setError("Invalid password format");
+      setError(VALIDATION_MESSAGES.PASSWORD_INVALID);
       return false;
     }
 
@@ -143,11 +143,9 @@ const Register = () => {
     const { username, email, newPassword } = formData;
 
     try {
-      const response = await apiFetch(`${BACKEND_API_URL}/api/register`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "include",
         body: JSON.stringify({
           username: username.trim(),
           email: email.trim(),
@@ -163,8 +161,10 @@ const Register = () => {
           setLoading(false);
           setIsRegistered(true);
           return;
+        } else if (response.status === 429) {
+          throw new Error(errorData.msg || VALIDATION_MESSAGES.RATE_LIMITED);
         } else {
-          throw new Error(errorData.msg || "Server error, please try again.");
+          throw new Error(errorData.msg || response.errorMessage || "Server error, please try again.");
         }
       }
 
@@ -172,6 +172,7 @@ const Register = () => {
       setLoading(false);
       setIsRegistered(true);
       setOtpResent(true);
+      setOtpAttemptsLeft(MAX_OTP_ATTEMPTS);
     } catch (err) {
       setError(err.message || "Server error, please try again.");
       setLoading(false);
@@ -188,20 +189,23 @@ const Register = () => {
 
     try {
       const idToken = credentialResponse.credential;
-      const response = await apiFetch(`${BACKEND_API_URL}/api/auth/google`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/auth/google`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ token: idToken }),
       });
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error("Google authentication failed.");
+        if (response.status === 429) {
+          throw new Error(data.msg || VALIDATION_MESSAGES.RATE_LIMITED);
+        }
+        throw new Error(data.msg || data.message || "Google authentication failed.");
       }
 
       handleAuthSuccess(data);
     } catch (err) {
-      setGoogleLoginError("Google login failed. Please try again.");
+      setGoogleLoginError(err.message || "Google login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -216,11 +220,9 @@ const Register = () => {
     setOtpLoading(true);
 
     try {
-      const response = await apiFetch(`${BACKEND_API_URL}/api/verify-otp`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/verify-otp`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "include",
         body: JSON.stringify({
           email: formData.email.trim(),
           otp: otp.trim?.() ?? otp,
@@ -230,20 +232,24 @@ const Register = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.msg || "OTP verification failed.");
+        const nextAttempts = Math.max(0, otpAttemptsLeft - 1);
+        setOtpAttemptsLeft(nextAttempts);
+
+        if (response.status === 429 || nextAttempts === 0) {
+          throw new Error(
+            errorData.msg || VALIDATION_MESSAGES.OTP_EXPIRED_OR_TOO_MANY_ATTEMPTS
+          );
+        }
+
+        throw new Error(
+          `${errorData.msg || "Invalid OTP"}. ${nextAttempts} attempt${nextAttempts === 1 ? "" : "s"} remaining.`
+        );
       }
 
       const data = await response.json();
-
-      localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, data.token);
-      localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, data.username);
-      localStorage.setItem(LOCAL_STORAGE_LOGIN_KEY, "true");
-      sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-
-      navigate(window.history.length > 2 ? -1 : "/");
-      location.reload();
+      handleAuthSuccess(data);
     } catch (err) {
-      setOtpError(err.msg || "OTP verification failed.");
+      setOtpError(err.message || "OTP verification failed.");
     } finally {
       setOtpLoading(false);
     }
@@ -253,11 +259,9 @@ const Register = () => {
     setResendOtpLoading(true);
 
     try {
-      const response = await apiFetch(`${BACKEND_API_URL}/api/resend-otp`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/resend-otp`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "include",
         body: JSON.stringify({
           email: formData.email.trim(),
         }),
@@ -265,6 +269,9 @@ const Register = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 429) {
+          throw new Error(errorData.msg || VALIDATION_MESSAGES.RATE_LIMITED);
+        }
         throw new Error(errorData.msg || "Error resending OTP.");
       }
 
@@ -272,7 +279,8 @@ const Register = () => {
       setOtpResendError("");
       setOtpResent(true);
       setCanResendOtp(false);
-      setCountdown(30);
+      setCountdown(OTP_COOLDOWN_SECONDS);
+      setOtpAttemptsLeft(MAX_OTP_ATTEMPTS);
     } catch (err) {
       setOtpResent(false);
       setOtpResendError(err.message || "Server error while resending OTP.");
@@ -286,11 +294,9 @@ const Register = () => {
     try {
       setWrongEmailLoading(true);
 
-      const response = await apiFetch(`${BACKEND_API_URL}/api/wrong-email`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/wrong-email`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "include",
         body: JSON.stringify({
           email: formData.email.trim(),
         }),
@@ -298,7 +304,7 @@ const Register = () => {
 
       const data = await response.json();
 
-      if (response.ok || data.msg == "User not found") {
+      if (response.ok || data.msg === "User not found") {
         setTimeout(() => {
           navigate("/register");
           location.reload();
@@ -306,7 +312,7 @@ const Register = () => {
       } else {
         setError(data.msg);
       }
-    } catch (err) {
+    } catch {
       setError("Error deleting the account, please try again.");
     } finally {
       setWrongEmailLoading(false);
@@ -318,9 +324,10 @@ const Register = () => {
     if (!canResendOtp) {
       timer = setInterval(() => {
         setCountdown((prev) => {
-          if (prev === 1) {
+          if (prev <= 1) {
             clearInterval(timer);
             setCanResendOtp(true);
+            return OTP_COOLDOWN_SECONDS;
           }
           return prev - 1;
         });
@@ -475,6 +482,19 @@ const Register = () => {
           </>
         ) : (
           <OtpInputForm onOtpChange={handleOtpChange} />
+        )}
+
+        {otpSent && (
+          <div className="text-center font-mono text-xs text-gray-500 dark:text-gray-400 my-2">
+            Remaining attempts:{" "}
+            <span
+              className={`font-bold ${
+                otpAttemptsLeft <= 2 ? "text-[#ff0055]" : "text-[#00f0ff]"
+              }`}
+            >
+              {otpAttemptsLeft} of {MAX_OTP_ATTEMPTS}
+            </span>
+          </div>
         )}
 
         {otpError && (

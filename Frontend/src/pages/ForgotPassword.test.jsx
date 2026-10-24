@@ -18,12 +18,18 @@ vi.mock('../utils/OtpInputForm', () => ({
   ),
 }));
 
-// Mock apiFetch - must be at top level for hoisting
-vi.mock('../utils/apifetch', () => ({
-  apiFetch: vi.fn(),
-}));
+// Mock apiClient - must be at top level for hoisting
+vi.mock('../api/client', () => {
+  const fn = vi.fn();
+  return {
+    apiClient: fn,
+    apiFetch: fn,
+    default: fn,
+  };
+});
 
-import { apiFetch } from '../utils/apifetch';
+import { apiClient } from '../api/client';
+const apiFetch = apiClient;
 
 const renderForgotPassword = () => {
   return render(
@@ -292,5 +298,61 @@ describe('ForgotPassword', () => {
   it('has Login link when not logged in', () => {
     renderForgotPassword();
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+  });
+
+  it('shows remaining OTP attempts and decrements on invalid OTP', async () => {
+    apiFetch
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ msg: 'Invalid OTP' }),
+      });
+
+    renderForgotPassword();
+    const emailInput = screen.getByLabelText(/email/i);
+    const form = getForm();
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Remaining attempts:/i)).toBeInTheDocument();
+      expect(screen.getByText(/5 of 5/i)).toBeInTheDocument();
+    });
+
+    const otpInput = screen.getByPlaceholderText(/enter otp/i);
+    fireEvent.change(otpInput, { target: { value: '999999' } });
+    const otpForm = screen.getByRole('button', { name: /verify otp/i }).form || document.querySelector('form');
+    fireEvent.submit(otpForm);
+
+    await waitFor(() => {
+      expect(screen.getByText(/4 of 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 attempts remaining/i)).toBeInTheDocument();
+    });
+  });
+
+  it('displays friendly message on 429 rate-limited response', async () => {
+    apiFetch
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({}) })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () => Promise.resolve({ msg: 'Too many requests, please try again after 15 minutes' }),
+      });
+
+    renderForgotPassword();
+    const emailInput = screen.getByLabelText(/email/i);
+    const form = getForm();
+
+    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Too many requests/i)
+      ).toBeInTheDocument();
+    });
   });
 });

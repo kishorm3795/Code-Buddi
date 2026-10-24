@@ -31,11 +31,8 @@ import NavigationLinks from "../components/NavigationLinks";
 import Editor from "../components/Editor";
 import CodeEditor from "../components/CodeEditor";
 import ShareEditor from "../components/ShareEditor";
-import {
-  LOCAL_STORAGE_TOKEN_KEY,
-  GENAI_API_URL,
-  LOCAL_STORAGE_USERNAME_KEY,
-} from "../utils/constants";
+import { ProtectedRoute, PublicOnlyRoute } from "../components/ProtectedRoute";
+import { GENAI_API_URL } from "../utils/constants";
 import samplePy from "../samples/python.py?raw";
 import sampleJs from "../samples/javascript.js?raw";
 import sampleC from "../samples/c.c?raw";
@@ -59,24 +56,10 @@ import sampleHtml from "../samples/index.html?raw";
 import sampleCSS from "../samples/style.css?raw";
 import sampleJavaScript from "../samples/script.js?raw";
 
-const isAuthenticated = () => !!localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-
 const htmlCode = {
   html: sampleHtml,
   css: sampleCSS,
   javascript: sampleJavaScript,
-};
-
-const ProtectedRoute = ({ element }) => {
-  return isAuthenticated() ? element : <Navigate to="/login" />;
-};
-
-const RedirectedRoute = ({ element }) => {
-  return !isAuthenticated() ? element : <Navigate to="/" />;
-};
-
-const GetUsername = () => {
-  return localStorage.getItem(LOCAL_STORAGE_USERNAME_KEY) || "";
 };
 
 const languages = [
@@ -201,15 +184,19 @@ const EditorRoutes = ({ isDarkMode }) => (
     <Routes>
       <Route
         path="/register"
-        element={<RedirectedRoute element={<Register isDarkMode />} />}
+        element={<PublicOnlyRoute element={<Register isDarkMode />} />}
       />
 
-      <Route path="/login" element={<RedirectedRoute element={<Login />} />} />
+      <Route path="/login" element={<PublicOnlyRoute element={<Login />} />} />
 
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route
-        path={`/account/${GetUsername()?.trim() || "*"}`}
+        path="/account/:username"
+        element={<ProtectedRoute element={<Accounts />} />}
+      />
+      <Route
+        path="/account"
         element={<ProtectedRoute element={<Accounts />} />}
       />
 

@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import CodeEditor from "./CodeEditor";
 import Editor from "./Editor";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import {
   SESSION_STORAGE_FETCH_STATUS_KEY,
   SESSION_STORAGE_SHARELINKS_KEY,
@@ -128,7 +129,7 @@ const ShareEditor = ({ isDarkMode }) => {
 
     try {
       setState((prev) => ({ ...prev, loading: true }));
-      const response = await fetch(`${TEMP_SHARE_API_URL}/file/${shareId}`, {
+      const response = await apiClient(`${TEMP_SHARE_API_URL}/file/${shareId}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -212,18 +213,15 @@ const ShareEditor = ({ isDarkMode }) => {
     }
   }, [shareId]);
 
+  const { token, isLoggedIn } = useAuth();
+
   const deleteSharedLink = async (shareId) => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (!token) {
+    if (!token && !isLoggedIn) {
       return;
     }
     try {
-      const linkResponse = await apiFetch(`${BACKEND_API_URL}/api/sharedLink`, {
+      const linkResponse = await apiClient(`${BACKEND_API_URL}/api/sharedLink`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ shareId }),
       });
 

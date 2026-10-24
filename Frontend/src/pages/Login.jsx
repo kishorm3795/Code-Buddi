@@ -3,19 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { TbLoader } from "react-icons/tb";
 import InputField from "../utils/InputField";
-import { apiFetch } from "../utils/apifetch";
+import { apiClient } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import {
-  SESSION_STORAGE_SHARELINKS_KEY,
-  LOCAL_STORAGE_TOKEN_KEY,
-  LOCAL_STORAGE_USERNAME_KEY,
-  LOCAL_STORAGE_LOGIN_KEY,
   BACKEND_API_URL,
   EMAIL_REGEX,
   PASSWORD_REGEX,
-  LOCAL_STORAGE_GOOGLE_USER,
+  VALIDATION_MESSAGES,
 } from "../utils/constants";
 
 const Login = () => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -31,13 +29,8 @@ const Login = () => {
   }, []);
 
   const handleAuthSuccess = (data) => {
-    localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, data.token);
-    localStorage.setItem(LOCAL_STORAGE_USERNAME_KEY, data.username);
-    localStorage.setItem(LOCAL_STORAGE_LOGIN_KEY, "true");
-    localStorage.setItem(LOCAL_STORAGE_GOOGLE_USER, data.isgoogleuser);
-    sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+    login(data);
     navigate(window.history.length > 2 ? -1 : "/");
-    location.reload();
   };
 
   const handleInputChange = (e) => {
@@ -55,15 +48,15 @@ const Login = () => {
 
   const validateForm = () => {
     if (!EMAIL_REGEX.test(formData.email.trim())) {
-      setError("Invalid email format");
+      setError(VALIDATION_MESSAGES.EMAIL_INVALID);
       return false;
     }
     if (formData.password.trim().length < 8) {
-      setError("Password must be at least 8 characters long");
+      setError(VALIDATION_MESSAGES.PASSWORD_SHORT);
       return false;
     }
     if (!PASSWORD_REGEX.test(formData.password.trim())) {
-      setError("Invalid password format");
+      setError(VALIDATION_MESSAGES.PASSWORD_INVALID);
       return false;
     }
     return true;
@@ -81,9 +74,9 @@ const Login = () => {
     }
 
     try {
-      const response = await apiFetch(`${BACKEND_API_URL}/api/login`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: formData.email.trim(),
           password: formData.password.trim(),
@@ -92,12 +85,18 @@ const Login = () => {
 
       const data = await response.json();
       if (!response.ok) {
-        if (data.msg === "Email not verified") {
+        if (response.status === 429) {
+          setError(
+            data?.msg ||
+            data?.message ||
+            VALIDATION_MESSAGES.RATE_LIMITED
+          );
+        } else if (data.msg === "Email not verified") {
           setError(
             "Email is not verified. Please check your inbox or register again."
           );
         } else {
-          setError(data.msg || "Invalid credentials!");
+          setError(data.msg || response.errorMessage || "Invalid credentials!");
         }
         return;
       }
@@ -119,19 +118,22 @@ const Login = () => {
 
     try {
       const idToken = credentialResponse.credential;
-      const response = await apiFetch(`${BACKEND_API_URL}/api/auth/google`, {
+      const response = await apiClient(`${BACKEND_API_URL}/api/auth/google`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ token: idToken }),
       });
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error("Google authentication failed.");
+        if (response.status === 429) {
+          throw new Error(data?.msg || VALIDATION_MESSAGES.RATE_LIMITED);
+        }
+        throw new Error(data?.msg || data?.message || "Google authentication failed.");
       }
       handleAuthSuccess(data);
     } catch (err) {
-      setGoogleLoginError("Google login failed. Please try again.");
+      setGoogleLoginError(err.message || "Google login failed. Please try again.");
     } finally {
       setLoading(false);
     }
