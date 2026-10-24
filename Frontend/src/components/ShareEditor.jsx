@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import NotFound from "../pages/NotFound";
 import CodeEditor from "./CodeEditor";
 import Editor from "./Editor";
+import LinkExpiredScreen from "./share/LinkExpiredScreen";
+import LinkNotFoundScreen from "./share/LinkNotFoundScreen";
 import { apiClient } from "../api/client";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -73,13 +74,14 @@ const ShareEditor = ({ isDarkMode }) => {
     language: "",
     expiryTime: null,
     title: "",
-    shareIdNotFound: false,
+    isNotFound: false,
+    isExpired: false,
     loading: true,
   });
 
   const copyBtnTimeout = useRef(null);
 
-  const { code, language, expiryTime, title, shareIdNotFound, loading } = state;
+  const { code, language, expiryTime, title, isNotFound, isExpired, loading } = state;
 
   const icon = languageIcons[language] || null;
 
@@ -95,11 +97,32 @@ const ShareEditor = ({ isDarkMode }) => {
     ? new Date(expiryTime).toLocaleString()
     : "";
 
+  const { token, isLoggedIn } = useAuth();
+
+  const deleteSharedLink = useCallback(async (idToDelete) => {
+    if (!token && !isLoggedIn) {
+      return;
+    }
+    try {
+      const linkResponse = await apiClient(`${BACKEND_API_URL}/api/sharedLink`, {
+        method: "DELETE",
+        body: JSON.stringify({ shareId: idToDelete }),
+      });
+
+      if (linkResponse.ok) {
+        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
+      }
+    } catch (err) {
+      console.warn("Could not delete expired shared link:", err);
+    }
+  }, [token, isLoggedIn]);
+
   const fetchCode = useCallback(async () => {
-    if (!shareId) {
+    if (!shareId || !isUUIDMatch(shareId)) {
       setState((prev) => ({
         ...prev,
-        shareIdNotFound: true,
+        isNotFound: true,
+        isExpired: false,
         loading: false,
       }));
       return;
@@ -113,17 +136,23 @@ const ShareEditor = ({ isDarkMode }) => {
       const cachedData = sessionStorage.getItem(shareId);
 
       if (cachedData) {
-        const { code, language, expiry_time, title } = JSON.parse(cachedData);
+        try {
+          const { code: cachedCode, language: cachedLang, expiry_time, title: cachedTitle } =
+            JSON.parse(cachedData);
 
-        setState({
-          code,
-          language,
-          expiryTime: expiry_time,
-          title,
-          shareIdNotFound: false,
-          loading: false,
-        });
-        return;
+          setState({
+            code: cachedCode,
+            language: cachedLang,
+            expiryTime: expiry_time,
+            title: cachedTitle,
+            isNotFound: false,
+            isExpired: false,
+            loading: false,
+          });
+          return;
+        } catch {
+          // parse failed, continue fetch
+        }
       }
     }
 
@@ -137,40 +166,69 @@ const ShareEditor = ({ isDarkMode }) => {
         },
       });
 
+      if (response.status === 410) {
+        setState({
+          code: "",
+          language: "",
+          expiryTime: null,
+          title: "",
+          isNotFound: false,
+          isExpired: true,
+          loading: false,
+        });
+        deleteSharedLink(shareId);
+        sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
+        return;
+      }
+
+      if (response.status === 404) {
+        setState({
+          code: "",
+          language: "",
+          expiryTime: null,
+          title: "",
+          isNotFound: true,
+          isExpired: false,
+          loading: false,
+        });
+        deleteSharedLink(shareId);
+        sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
 
-        if (data.error) {
-          if (data.error === "File has expired") {
-            setState({
-              code: "",
-              language: "",
-              expiryTime: null,
-              title: "",
-              shareIdNotFound: false,
-              loading: false,
-            });
-
-            deleteSharedLink(shareId);
-          } else if (response.status === 404) {
-            setState({
-              code: "",
-              language: "",
-              expiryTime: null,
-              title: "",
-              shareIdNotFound: true,
-              loading: false,
-            });
-
-            deleteSharedLink(shareId);
-          }
+        if (data.error === "File has expired") {
+          setState({
+            code: "",
+            language: "",
+            expiryTime: null,
+            title: "",
+            isNotFound: false,
+            isExpired: true,
+            loading: false,
+          });
+          deleteSharedLink(shareId);
+        } else if (data.error === "File not found" || data.error) {
+          setState({
+            code: "",
+            language: "",
+            expiryTime: null,
+            title: "",
+            isNotFound: true,
+            isExpired: false,
+            loading: false,
+          });
+          deleteSharedLink(shareId);
         } else {
           setState({
             code: data.code,
             language: data.language,
             expiryTime: data.expiry_time,
             title: data.title,
-            shareIdNotFound: false,
+            isNotFound: false,
+            isExpired: false,
             loading: false,
           });
 
@@ -191,110 +249,34 @@ const ShareEditor = ({ isDarkMode }) => {
           language: "",
           expiryTime: null,
           title: "",
-          shareIdNotFound: true,
+          isNotFound: true,
+          isExpired: false,
           loading: false,
         });
-
         deleteSharedLink(shareId);
         sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
       }
-    } catch (error) {
+    } catch {
       setState({
         code: "",
         language: "",
         expiryTime: null,
         title: "",
-        shareIdNotFound: true,
+        isNotFound: true,
+        isExpired: false,
         loading: false,
       });
-
       deleteSharedLink(shareId);
       sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
     }
-  }, [shareId]);
-
-  const { token, isLoggedIn } = useAuth();
-
-  const deleteSharedLink = async (shareId) => {
-    if (!token && !isLoggedIn) {
-      return;
-    }
-    try {
-      const linkResponse = await apiClient(`${BACKEND_API_URL}/api/sharedLink`, {
-        method: "DELETE",
-        body: JSON.stringify({ shareId }),
-      });
-
-      if (linkResponse.ok) {
-        sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-      }
-    } catch (err) {
-      console.warn("Could not delete expired shared link:", err);
-    }
-  };
+  }, [shareId, deleteSharedLink]);
 
   useEffect(() => {
-    if (!isUUIDMatch(shareId)) {
-      setState({
-        code: "",
-        language: "",
-        expiryTime: null,
-        title: "",
-        shareIdNotFound: true,
-        loading: false,
-      });
-      return;
-    }
-
-    const cachedData = sessionStorage.getItem(shareId);
-
-    if (cachedData) {
-      const { expiry_time } = JSON.parse(cachedData);
-      const expiryDate = new Date(expiry_time);
-      const currentDate = new Date();
-
-      if (expiryDate < currentDate) {
-        sessionStorage.removeItem(shareId);
-        sessionStorage.setItem(SESSION_STORAGE_FETCH_STATUS_KEY, "false");
-        setState({
-          code: "",
-          language: "",
-          expiryTime: null,
-          title: "",
-          shareIdNotFound: true,
-          loading: false,
-        });
-        return;
-      }
-
-      const { code, language, title } = JSON.parse(cachedData);
-      setState({
-        code,
-        language,
-        expiryTime: expiry_time,
-        title,
-        shareIdNotFound: false,
-        loading: false,
-      });
-      return;
-    }
-
     fetchCode();
-  }, [shareId, fetchCode]);
+  }, [fetchCode]);
 
-  const handleCopyLink = async () => {
-    if (!loading) {
-      try {
-        const shareLink = new URL(`${window.location.origin}/${shareId}`);
-        await navigator.clipboard.writeText(shareLink.toString());
-      } catch (err) {
-        Swal.fire({
-          title: "Failed to copy",
-          text: "Could not copy the URL to clipboard.",
-          icon: "error",
-        });
-      }
-    }
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
 
     if (copyBtnTimeout.current) {
       clearTimeout(copyBtnTimeout.current);
@@ -318,8 +300,12 @@ const ShareEditor = ({ isDarkMode }) => {
     );
   }
 
-  if (shareIdNotFound) {
-    return <NotFound />;
+  if (isExpired) {
+    return <LinkExpiredScreen />;
+  }
+
+  if (isNotFound) {
+    return <LinkNotFoundScreen />;
   }
 
   return (
@@ -336,16 +322,16 @@ const ShareEditor = ({ isDarkMode }) => {
           </div>
           <div className="mt-2 select-none items-center sm:mt-0 sm:ml-4">
             <button
+              type="button"
               onClick={handleCopyLink}
               title="Click to copy the link"
               className="flex cursor-pointer hover:text-gray-400"
             >
               {copiedLink ? (
-                <MdDone className="mr-1 mt-1" />
+                <MdDone className="mr-1 mt-1 text-green-500" />
               ) : (
                 <FiClipboard className="mr-1 mt-1" />
               )}
-
               {copiedLink ? "Link Copied!" : "Copy Link"}
             </button>
           </div>

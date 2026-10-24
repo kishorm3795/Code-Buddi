@@ -705,6 +705,7 @@ code, pre, .font-mono {
 .hacker-digital-rain {
   position: relative;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .hacker-digital-rain::before {
