@@ -1,1027 +1,236 @@
-import React, { useState, useEffect, useRef } from "react";
-import MonacoEditor from "@monaco-editor/react";
-import ShareLinkModal from "../utils/ShareLinkModal.js";
-import { apiClient } from "../api/client";
-import { useAuth } from "../hooks/useAuth";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
-  SESSION_STORAGE_SHARELINKS_KEY,
-  GENAI_API_URL,
-  TEMP_SHARE_API_URL,
-  BACKEND_API_URL,
-  MAX_SIZE,
-} from "../utils/constants";
-import { useNavigate } from "react-router-dom";
-import {
-  FaSpinner,
   FaPlay,
-  FaDownload,
+  FaSpinner,
+  FaTrashAlt,
   FaCopy,
+  FaDownload,
+  FaMagic,
   FaWrench,
-} from "react-icons/fa6";
-import { FaMagic, FaTrashAlt, FaShare } from "react-icons/fa";
-import { BiTerminal } from "react-icons/bi";
+  FaShare,
+} from "react-icons/fa";
 import { GiBrain } from "react-icons/gi";
-import Swal from "sweetalert2/dist/sweetalert2.js";
+import { useRunCode } from "../hooks/useRunCode";
+import { useGenerate } from "../hooks/useGenerate";
+import { useRefactor } from "../hooks/useRefactor";
+import { useShare } from "../hooks/useShare";
+import LazyMonacoEditor from "./editor/LazyMonacoEditor";
+import EditorToolbar from "./editor/EditorToolbar";
+import OutputPanel from "./editor/OutputPanel";
+import { downloadCodeFile } from "../utils/fileDownloader";
+import { loadSampleCode } from "../utils/sampleLoader";
 
 const CodeEditor = ({
-  title,
   language,
   reactIcon,
   apiEndpoint,
   isDarkMode,
   defaultCode,
+  title,
   shareIdData,
 }) => {
   const codeStorageKey = `__${shareIdData || language}Code__`;
   const outputStorageKey = `__${shareIdData || language}Output__`;
 
-  const [code, setCode] = useState(
-    sessionStorage.getItem(codeStorageKey) || defaultCode || ""
-  );
-  const [output, setOutput] = useState(
-    sessionStorage.getItem(outputStorageKey) ||
-      "Run your code to see output here..."
-  );
+  const [code, setCode] = useState(() => {
+    const saved = sessionStorage.getItem(codeStorageKey);
+    if (saved !== null) return saved;
+    return defaultCode || "";
+  });
+
   const [deviceType, setDeviceType] = useState("pc");
   const [cpyBtnState, setCpyBtnState] = useState("Copy");
-  const [timeoutId, setTimeoutId] = useState(null);
-  const [loadingActionRun, setLoadingActionRun] = useState(null);
-  const [loadingActionGen, setLoadingActionGen] = useState(null);
-  const { token, isLoggedIn } = useAuth();
-  const [loadingActionRefactor, setLoadingActionRefactor] = useState(null);
-  const [isGenerateBtnPressed, setisGenerateBtnPressed] = useState(false);
-  const [isRefactorBtnPressed, setisRefactorBtnPressed] = useState(false);
-  const [isDownloadBtnPressed, setisDownloadBtnPressed] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
 
-  const terminalRef = useRef(null);
   const editorRef = useRef(null);
+  const terminalRef = useRef(null);
+  const cpyTimeoutRef = useRef(null);
 
-  const navigate = useNavigate();
+  // Extracted hooks
+  const {
+    output,
+    setOutput,
+    isRunning,
+    isSimulated,
+    error: runError,
+    runCode: executeRun,
+    cancelRun,
+    clearOutput,
+  } = useRunCode({ storageKey: outputStorageKey });
+
+  const {
+    generateCode: executeGenerate,
+    cancelGenerate,
+    isGenerating,
+    loadingAction: genLoadingAction,
+  } = useGenerate();
+
+  const {
+    refactorCode: executeRefactor,
+    cancelRefactor,
+    isRefactoring,
+    loadingAction: refactorLoadingAction,
+  } = useRefactor();
+
+  const { shareCode, isSharing } = useShare();
 
   const fontSizeMap = {
-    pc: 16,
+    "mobile-s": 10,
+    "mobile-m": 12,
+    "mobile-l": 14,
     tablet: 14,
-    mobile: 12,
+    laptop: 14,
+    pc: 14,
   };
 
-  const capFirst = (str) => {
-    if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
-
+  // Asynchronously load sample code if none is provided or saved
   useEffect(() => {
-    const formattedTitle = title
-      ? title.length > 30
-        ? `${capFirst(title.slice(0, 30))}...${title.slice(-3)}`
-        : capFirst(title)
-      : "";
+    let isMounted = true;
+    if (!shareIdData && !sessionStorage.getItem(codeStorageKey) && !defaultCode) {
+      loadSampleCode(language).then((sample) => {
+        if (isMounted && sample) {
+          setCode(sample);
+        }
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [language, shareIdData, codeStorageKey, defaultCode]);
 
-    const formattedLanguage = capFirst(language);
-
-    const pageTitle = formattedTitle
-      ? `${formattedTitle} - ${formattedLanguage}`
-      : formattedLanguage;
-
-    document.title = `${pageTitle} Editor - Online IDE`;
-  }, [title, language]);
-
+  // Persist code in sessionStorage
   useEffect(() => {
-    const savedCode = sessionStorage.getItem(codeStorageKey);
-    const savedOutput = sessionStorage.getItem(outputStorageKey);
+    sessionStorage.setItem(codeStorageKey, code);
+  }, [code, codeStorageKey]);
 
-    if (savedCode && savedCode.trim().length !== 0) {
-      setCode(savedCode);
-    } else {
-      setCode(defaultCode || "");
-    }
-
-    if (
-      savedOutput &&
-      savedOutput
-        .replace(
-          /^```(text|json|c|cpp|csharp|dart|go|java|javascript|julia|kotlin|mongodb|perl|python|ruby|rust|scala|sql|swift|typescript|verilog)[\r\n]*/m,
-          ""
-        )
-        .replace(/^```[\r\n]*/m, "")
-        .replace(/[\r\n]*```$/m, "")
-        .trim().length !== 0
-    ) {
-      setOutput(savedOutput);
-    } else {
-      setOutput("Run your code to see output here...");
-    }
-
+  // Responsive device type resize listener
+  useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
-      if (width > 1024) {
-        setDeviceType("pc");
-      } else if (width <= 1024 && width > 768) {
-        setDeviceType("tablet");
-      } else {
-        setDeviceType("mobile");
-      }
+      if (width < 320) setDeviceType("mobile-s");
+      else if (width < 375) setDeviceType("mobile-m");
+      else if (width < 425) setDeviceType("mobile-l");
+      else if (width < 768) setDeviceType("tablet");
+      else if (width < 1024) setDeviceType("laptop");
+      else setDeviceType("pc");
     };
 
     handleResize();
     window.addEventListener("resize", handleResize);
-
     return () => window.removeEventListener("resize", handleResize);
-  }, [language]);
+  }, []);
 
+  // Update document title
   useEffect(() => {
-    if (code !== sessionStorage.getItem(codeStorageKey) || code === "") {
-      sessionStorage.setItem(codeStorageKey, code);
-    }
+    const formattedTitle = title
+      ? `${title.charAt(0).toUpperCase()}${title.slice(1)}`
+      : `${language.charAt(0).toUpperCase() + language.slice(1)} Playground`;
+    document.title = formattedTitle;
+  }, [title, language]);
 
-    if (output !== sessionStorage.getItem(outputStorageKey) || output === "") {
-      sessionStorage.setItem(outputStorageKey, output);
-    }
-  }, [code, output, language]);
-
-  const handleEditorDidMount = (editor, monaco) => {
-    editorRef.current = editor;
-  };
-
-  const runCode = async () => {
-    if (code.trim().length === 0) return;
-
-    if (code.trim().length > MAX_SIZE) {
-      return Swal.fire({
-        title: "Error",
-        text: `The ${
-          language.charAt(0).toUpperCase() + language.slice(1)
-        } code exceeds the maximum allowed size of 500 KB.`,
-        icon: "error",
-        confirmButtonText: "OK",
-      });
-    }
-
-    setIsEditorReadOnly(true);
-    setLoadingActionRun("run");
-    setisDownloadBtnPressed(true);
-
-    try {
-      const response = await apiClient(apiEndpoint, {
-        method: "POST",
-        body: JSON.stringify({
-          language: language,
-          code: code,
-        }),
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error("Failed to run code.");
+  // Prevent default save shortcut
+  const handleCtrlS = useCallback(
+    (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+        event.preventDefault();
+        downloadCodeFile(code, "file", language);
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-
-      let isFirstChunk = true;
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-
-        if (isFirstChunk) {
-          setOutput("");
-
-          if (terminalRef.current) {
-            terminalRef.current.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-          }
-
-          isFirstChunk = false;
-        }
-
-        setOutput((prev) => {
-          const updatedOutput = prev + chunk;
-
-          setTimeout(() => {
-            requestAnimationFrame(() => {
-              if (terminalRef.current) {
-                terminalRef.current.scrollTop =
-                  terminalRef.current.scrollHeight;
-              }
-            });
-          }, 0);
-
-          return updatedOutput;
-        });
-      }
-
-      if (output.length !== 0) {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString(undefined, {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        });
-
-        const dateString = now.toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "long",
-          day: "2-digit",
-        });
-
-        const completedMsg = `\n\n--- Completed @ ${timeString} on ${dateString} ---`;
-
-        setOutput((prev) => prev + completedMsg);
-      }
-
-      if (isLoggedIn) {
-        await getRunCodeCount(language);
-      }
-    } catch (error) {
-      setOutput("Failed!! Try again.");
-    } finally {
-      if (terminalRef.current) {
-        setTimeout(() => {
-          requestAnimationFrame(() => {
-            if (terminalRef.current) {
-              terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-            }
-          });
-        }, 0);
-      }
-
-      setIsEditorReadOnly(false);
-      setLoadingActionRun(null);
-      setisDownloadBtnPressed(false);
-    }
-  };
-
-  const clearAll = () => {
-    setCode("");
-    setOutput("Run your code to see output here...");
-  };
-
-  const handleCopy = async () => {
-    const content = sessionStorage.getItem(codeStorageKey);
-
-    if (content.length === 0) return;
-
-    try {
-      await navigator.clipboard.writeText(content);
-
-      const lastLineNumber = editorRef.current.getModel().getLineCount();
-      editorRef.current.revealLine(lastLineNumber);
-      editorRef.current.setSelection({
-        startLineNumber: 1,
-        startColumn: 1,
-        endLineNumber: lastLineNumber,
-        endColumn: editorRef.current
-          .getModel()
-          .getLineMaxColumn(lastLineNumber),
-      });
-
-      setCpyBtnState("Copied!");
-    } catch (err) {
-      Swal.fire({
-        title: "Failed to copy",
-        text: `Could not copy the ${language} code to clipboard.`,
-        icon: "error",
-      });
-    }
-
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    const newTimeoutId = setTimeout(() => {
-      setCpyBtnState("Copy");
-    }, 1500);
-
-    setTimeoutId(newTimeoutId);
-  };
-
-  const generateCodeMain = async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-
-    if (!language) return;
-
-    const { value: result } = await Swal.fire({
-      title: "Generate Code",
-      html: `
-      <textarea id="swal-input1" class="swal2-textarea !w-[82%]" placeholder="e.g., simple calculator"></textarea>
-      <label class="flex justify-center mt-3">
-        <input type="checkbox" id="improvePrompt" class="mr-2"> Improve Prompt
-      </label>
-    `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "Generate",
-      preConfirm: () => {
-        const prompt = document.getElementById("swal-input1").value.trim();
-        const improve = document.getElementById("improvePrompt").checked;
-        if (!prompt) {
-          Swal.showValidationMessage(
-            "This field is mandatory! Please enter a prompt."
-          );
-          return;
-        }
-        return { prompt, improve };
-      },
-      didOpen: () => {
-        const modal = Swal.getPopup();
-        const checkbox = modal.querySelector("#improvePrompt");
-        const confirmBtn = modal.querySelector(".swal2-confirm");
-
-        checkbox.addEventListener("change", () => {
-          confirmBtn.textContent = checkbox.checked ? "Improve" : "Generate";
-        });
-
-        modal.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && e.ctrlKey) {
-            e.preventDefault();
-            Swal.clickConfirm();
-          }
-        });
-      },
-      allowOutsideClick: false,
-    });
-
-    if (!result) return;
-
-    let finalPrompt = result.prompt;
-
-    if (result.improve) {
-      Swal.fire({
-        title: "Improving Prompt...",
-        html: "Please wait while we generate new ideas.",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      try {
-        if (!token && !isLoggedIn) throw new Error("Authentication token missing.");
-
-        const response = await apiClient(`${GENAI_API_URL}/improve-prompt`, {
-          method: "POST",
-          body: JSON.stringify({
-            topic: finalPrompt,
-            language: language,
-          }),
-        });
-
-        const json = await response.json();
-
-        if (!json.prompts || Object.keys(json.prompts).length === 0) {
-          await Swal.fire(
-            "Error",
-            "Failed to generate improved prompts.",
-            "error"
-          );
-          return;
-        }
-
-        const prompts = Object.values(json?.prompts);
-        const selectedPrompt = await new Promise((resolve) => {
-          const promptsHtml = prompts
-            .map(
-              (prompt, index) => `
-            <div class="flex items-center justify-between border border-gray-200 p-[10px] rounded-md mb-[10px]">
-              <p class="flex-grow select-text text-left m-0">${prompt}</p>
-              <button class="swal2-confirm swal2-styled select-prompt-btn ml-[15px] py-[10px] px-[12px]" data-index="${index}" title="Select this prompt">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </button>
-            </div>
-          `
-            )
-            .join("");
-
-          Swal.fire({
-            title: "Select an Improved Prompt",
-            html: `<div>${promptsHtml}</div>`,
-            showConfirmButton: false,
-            showCancelButton: true,
-            allowOutsideClick: false,
-            cancelButtonText: "Cancel",
-            didOpen: () => {
-              const promptButtons =
-                document.querySelectorAll(".select-prompt-btn");
-              promptButtons.forEach((button) => {
-                button.addEventListener("click", () => {
-                  const index = button.getAttribute("data-index");
-                  if (index !== null) {
-                    resolve(prompts[parseInt(index, 10)]);
-                    Swal.close();
-                  }
-                });
-              });
-            },
-          }).then((result) => {
-            if (result.dismiss) {
-              resolve(null);
-            }
-          });
-        });
-
-        if (!selectedPrompt) return;
-
-        finalPrompt = selectedPrompt;
-      } catch {
-        await Swal.fire("Error", "Failed to improve prompt.", "error");
-        return;
-      }
-    }
-
-    setLoadingActionGen("thinking");
-    setIsEditorReadOnly(true);
-    setisGenerateBtnPressed(true);
-
-    try {
-      if (!token && !isLoggedIn) throw new Error("Authentication token missing.");
-
-      const response = await apiClient(`${GENAI_API_URL}/generate_code`, {
-        method: "POST",
-        body: JSON.stringify({
-          problem_description: finalPrompt,
-          language: language,
-        }),
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error("Failed to generate code.");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let generatedCode = "";
-      let isPrevCode = false;
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        if (!isPrevCode) {
-          setLoadingActionGen("generate");
-          setCode("");
-          isPrevCode = true;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        generatedCode += chunk;
-
-        setCode((prev) => {
-          const updatedCode = prev + chunk;
-
-          setTimeout(() => {
-            const editor = editorRef.current;
-            const model = editor?.getModel();
-            const lineCount = model?.getLineCount?.();
-
-            if (lineCount) {
-              editor.revealLineInCenter(lineCount);
-            }
-          }, 0);
-
-          return updatedCode;
-        });
-      }
-
-      if (!generatedCode.trim()) {
-        Swal.fire({
-          icon: "warning",
-          text: "No code was generated. Please try again.",
-          timer: 5000,
-        });
-      }
-
-      if (isLoggedIn) {
-        await getGenerateCodeCount();
-      }
-    } catch (error) {
-      Swal.fire("Error", "Failed to generate code.", "error");
-    } finally {
-      setLoadingActionGen(null);
-      setIsEditorReadOnly(false);
-      setisGenerateBtnPressed(false);
-    }
-  };
-
-  const refactorCode = async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-
-    if (code.trim().length === 0 || !language) return;
-
-    if (code.trim().length > MAX_SIZE) {
-      return Swal.fire({
-        title: "Error",
-        text: `The ${
-          language.charAt(0).toUpperCase() + language.slice(1)
-        } code exceeds the maximum allowed size of 500 KB.`,
-        icon: "error",
-        confirmButtonText: "OK",
-      });
-    }
-
-    const { value: prompt, isConfirmed } = await Swal.fire({
-      title: "Refactor Code",
-      input: "textarea",
-      inputLabel: "Suggestions to improve the code (optional)",
-      inputPlaceholder: "e.g., remove comments, optimize loop, etc.",
-      confirmButtonText: "Refactor",
-      showCancelButton: true,
-      allowOutsideClick: false,
-      footer:
-        '<p class="text-center text-sm text-red-500 dark:text-red-300">Suggestions help improve results, <span class="font-bold">but are optional</span>.</p>',
-      didOpen: () => {
-        const modal = Swal.getPopup();
-        modal.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && e.ctrlKey) {
-            e.preventDefault();
-            Swal.clickConfirm();
-          }
-        });
-      },
-    });
-
-    if (!isConfirmed) {
-      return;
-    }
-
-    setLoadingActionRefactor("thinking");
-
-    try {
-      setIsEditorReadOnly(true);
-      setisRefactorBtnPressed(true);
-
-      if (!token && !isLoggedIn) {
-        return;
-      }
-
-      const response = await apiClient(`${GENAI_API_URL}/refactor_code`, {
-        method: "POST",
-        body: JSON.stringify({
-          problem_description: prompt.trim() || null,
-          language,
-          code,
-          output,
-        }),
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error("Failed to refactor code.");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let refactorCode = "";
-      let isPrevCode = false;
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        if (!isPrevCode) {
-          setCode("");
-          setLoadingActionRefactor("refactor");
-          isPrevCode = true;
-        }
-
-        const chunk = decoder.decode(value, { stream: true });
-        refactorCode += chunk;
-
-        setCode((prev) => {
-          const updatedCode = prev + chunk;
-
-          setTimeout(() => {
-            const editor = editorRef.current;
-            const model = editor?.getModel();
-            const lineCount = model?.getLineCount?.();
-
-            if (lineCount) {
-              editor.revealLineInCenter(lineCount);
-            }
-          }, 0);
-
-          return updatedCode;
-        });
-      }
-
-      if (!refactorCode.trim()) {
-        Swal.fire({
-          icon: "warning",
-          text: "No code was refactored. Please try again.",
-          timer: 5000,
-        });
-      }
-      if (isLoggedIn) {
-        await getRefactorCodeCount();
-      }
-    } catch (error) {
-      Swal.fire("Error", "Failed to refactor code.", "error");
-    } finally {
-      setLoadingActionRefactor(null);
-      setIsEditorReadOnly(false);
-      setisRefactorBtnPressed(false);
-    }
-  };
-
-  const shareLink = async () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-
-    if (!code || !language) {
-      Swal.fire({
-        icon: "error",
-        title: "Missing Information",
-        text: "Please provide both code and language before uploading.",
-      });
-      return;
-    }
-
-    if (code.trim().length > MAX_SIZE) {
-      return Swal.fire({
-        title: "Error",
-        text: `The ${
-          language.charAt(0).toUpperCase() + language.slice(1)
-        } code exceeds the maximum allowed size of 500 KB.`,
-        icon: "error",
-        confirmButtonText: "OK",
-      });
-    }
-
-    const defaultTitle = `${language}-untitled-${Math.random()
-      .toString(36)
-      .substring(2, 7)}`;
-
-    const { isDismissed } = await Swal.fire({
-      title: "Create Share link",
-      html: ShareLinkModal(
-        defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1)
-      ),
-      showCancelButton: true,
-      allowOutsideClick: false,
-      footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
-      didOpen: () => {
-        const modal = Swal.getPopup();
-        modal.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            Swal.clickConfirm();
-          }
-        });
-      },
-    });
-
-    if (isDismissed) {
-      return;
-    }
-
-    const title = document.getElementById("titleInput").value;
-    const expiryTime =
-      parseInt(
-        document.querySelector('input[name="expiryTime"]:checked').value
-      ) || 10;
-
-    const finalTitle =
-      title.slice(0, 60) ||
-      defaultTitle.charAt(0).toUpperCase() + defaultTitle.slice(1);
-
-    Swal.fire({
-      title: "Generating...",
-      text: "Please wait while your share link is being generated.",
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
-
-    try {
-      const load = JSON.stringify({
-        language,
-        code,
-        title: finalTitle.trim(),
-        expiryTime,
-      });
-
-      if (!token && !isLoggedIn) {
-        return;
-      }
-
-      const response = await apiClient(
-        `${TEMP_SHARE_API_URL}/temp-file-upload`,
-        {
-          method: "POST",
-          body: load,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to upload the code");
-      }
-
-      const data = await response.json();
-
-      if (response.ok) {
-        if (data?.fileUrl) {
-          const url = new URL(data.fileUrl);
-          const shareId = url.pathname.split("/").pop();
-          const shareableLink = `${window.location.origin}/${shareId}`;
-
-          if (isLoggedIn) {
-            try {
-              await saveSharedLinkCount(shareId, finalTitle, expiryTime);
-            } catch (err) {
-              console.error(err);
-            }
-          }
-
-          Swal.close();
-
-          sessionStorage.removeItem(codeStorageKey);
-          sessionStorage.removeItem(outputStorageKey);
-          sessionStorage.removeItem(SESSION_STORAGE_SHARELINKS_KEY);
-
-          navigate(`/${shareId}`);
-
-          Swal.fire({
-            icon: "success",
-            title: "Share Link is generated",
-            html: `<p class="mb-2">Your code is accessible at:</p><pre class="bg-gray-100 dark:bg-neutral-800 text-neutral-800 dark:text-white p-2 rounded text-sm overflow-x-auto select-text whitespace-pre-wrap break-words">${shareableLink}</pre>`,
-            confirmButtonText: "Copy",
-            showCancelButton: true,
-            cancelButtonText: "Close",
-            allowOutsideClick: false,
-            footer: `<p class="text-center text-sm text-red-500 dark:text-red-300">You can delete shared links at any time from <span class="font-bold">Homepage</span>.</p>`,
-          }).then(async (result) => {
-            if (result.isConfirmed) {
-              try {
-                await navigator.clipboard.writeText(shareableLink.toString());
-
-                Swal.fire({
-                  title: "URL Copied!",
-                  text: "",
-                  icon: "success",
-                  timer: 2000,
-                });
-              } catch (err) {
-                Swal.fire({
-                  title: "Failed to copy",
-                  text: "Could not copy the URL to clipboard.",
-                  icon: "error",
-                });
-              }
-            }
-          });
-        }
-      }
-    } catch (err) {
-      Swal.close();
-
-      Swal.fire({
-        icon: "error",
-        title: "Failed!!",
-        text: "Please try again.",
-        timer: 5000,
-      });
-
-      console.error(err);
-    }
-  };
-
-  const getRunCodeCount = async (language) => {
-    if (!token && !isLoggedIn) {
-      return;
-    }
-
-    const response = await apiClient(`${BACKEND_API_URL}/api/runCode/count`, {
-      method: "POST",
-      body: JSON.stringify({ language }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch run count");
-    }
-  };
-
-  const getGenerateCodeCount = async () => {
-    if (!token && !isLoggedIn) {
-      return;
-    }
-
-    const response = await apiClient(
-      `${BACKEND_API_URL}/api/generateCode/count`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          language: language,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to send request");
-    }
-  };
-
-  const getRefactorCodeCount = async () => {
-    if (!token && !isLoggedIn) {
-      return;
-    }
-
-    const response = await apiClient(
-      `${BACKEND_API_URL}/api/refactorCode/count`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          language: language,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to send request");
-    }
-  };
-
-  const saveSharedLinkCount = async (shareId, title, expiryTime) => {
-    try {
-      if (!token && !isLoggedIn) {
-        return;
-      }
-
-      const countResponse = await apiClient(
-        `${BACKEND_API_URL}/api/sharedLink/count`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            shareId,
-            title,
-            expiryTime,
-          }),
-        }
-      );
-
-      if (!countResponse.ok) {
-        const errorResponse = await countResponse.json();
-        throw new Error(
-          `Failed to save shared link count: ${
-            errorResponse.msg || countResponse.statusText
-          }`
-        );
-      }
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const downloadFile = (content, filename, language) => {
-    if (!content || content.trim().length === 0) {
-      return;
-    }
-
-    let mimeType;
-    let fileExtension;
-
-    switch (language) {
-      case "python":
-        mimeType = "text/x-python";
-        fileExtension = "py";
-        break;
-      case "javascript":
-        mimeType = "application/javascript";
-        fileExtension = "js";
-        break;
-      case "c":
-        mimeType = "text/x-c";
-        fileExtension = "c";
-        break;
-      case "cpp":
-        mimeType = "text/x-c++src";
-        fileExtension = "cpp";
-        break;
-      case "java":
-        mimeType = "text/x-java";
-        fileExtension = "java";
-        break;
-      case "csharp":
-        mimeType = "application/x-csharp";
-        fileExtension = "cs";
-        break;
-      case "go":
-        mimeType = "text/x-go";
-        fileExtension = "go";
-        break;
-      case "rust":
-        mimeType = "text/x-rust";
-        fileExtension = "rs";
-        break;
-      case "verilog":
-        mimeType = "text/x-verilog";
-        fileExtension = "v";
-        break;
-      case "sql":
-        mimeType = "application/sql";
-        fileExtension = "sql";
-        break;
-      case "mongodb":
-        mimeType = "application/javascript";
-        fileExtension = "js";
-        break;
-      case "swift":
-        mimeType = "application/x-swift";
-        fileExtension = "swift";
-        break;
-      case "ruby":
-        mimeType = "text/x-ruby";
-        fileExtension = "rb";
-        break;
-      case "typescript":
-        mimeType = "application/typescript";
-        fileExtension = "ts";
-        break;
-      case "dart":
-        mimeType = "application/dart";
-        fileExtension = "dart";
-        break;
-      case "kotlin":
-        mimeType = "application/x-java";
-        fileExtension = "kt";
-        break;
-      case "perl":
-        mimeType = "application/x-perl";
-        fileExtension = "pl";
-        break;
-      case "scala":
-        mimeType = "application/scala";
-        fileExtension = "scala";
-        break;
-      case "julia":
-        mimeType = "application/x-julia";
-        fileExtension = "jl";
-        break;
-      default:
-        mimeType = "application/octet-stream";
-        fileExtension = "txt";
-        break;
-    }
-
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${filename}.${fileExtension}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCtrlS = (event) => {
-    if (
-      (event.ctrlKey || event.metaKey) &&
-      event.key === "s" &&
-      code.trim().length !== 0
-    ) {
-      event.preventDefault();
-      downloadFile(code, "file", language);
-    }
-  };
+    },
+    [code, language]
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handleCtrlS);
-    return () => {
-      document.removeEventListener("keydown", handleCtrlS);
-    };
-  }, [code, language]);
+    return () => document.removeEventListener("keydown", handleCtrlS);
+  }, [handleCtrlS]);
+
+  const handleEditorDidMount = (editor) => {
+    editorRef.current = editor;
+  };
+
+  const clearAll = useCallback(() => {
+    setCode("");
+    clearOutput();
+    sessionStorage.removeItem(codeStorageKey);
+    sessionStorage.removeItem(outputStorageKey);
+  }, [codeStorageKey, outputStorageKey, clearOutput]);
+
+  const handleCopy = useCallback(async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCpyBtnState("Copied!");
+      if (cpyTimeoutRef.current) clearTimeout(cpyTimeoutRef.current);
+      cpyTimeoutRef.current = setTimeout(() => {
+        setCpyBtnState("Copy");
+      }, 1500);
+    } catch (err) {
+      console.warn("Could not copy code:", err);
+    }
+  }, [code]);
+
+  const handleRun = useCallback(() => {
+    setIsEditorReadOnly(true);
+    executeRun({
+      code,
+      language,
+      apiEndpoint,
+      terminalRef,
+    }).finally(() => {
+      setIsEditorReadOnly(false);
+    });
+  }, [code, language, apiEndpoint, executeRun]);
+
+  const handleGenerate = useCallback(() => {
+    setIsEditorReadOnly(true);
+    executeGenerate({
+      language,
+      setCode,
+      editorRef,
+    }).finally(() => {
+      setIsEditorReadOnly(false);
+    });
+  }, [language, executeGenerate]);
+
+  const handleRefactor = useCallback(() => {
+    setIsEditorReadOnly(true);
+    executeRefactor({
+      code,
+      language,
+      output,
+      setCode,
+      editorRef,
+    }).finally(() => {
+      setIsEditorReadOnly(false);
+    });
+  }, [code, language, output, executeRefactor]);
+
+  const handleShare = useCallback(() => {
+    shareCode({
+      code,
+      language,
+      defaultTitlePrefix: language,
+      storageKeysToClear: [codeStorageKey, outputStorageKey],
+    });
+  }, [code, language, codeStorageKey, outputStorageKey, shareCode]);
 
   const buttonsConfig = [
     {
-      action: runCode,
+      action: handleRun,
       bgColor: "bg-blue-500",
-      icon:
-        loadingActionRun === "run" ? (
-          <FaSpinner className="mr-2 mt-1 animate-spin" />
-        ) : (
-          <FaPlay className="mr-2 mt-1" />
-        ),
-      text: loadingActionRun === "run" ? "Running..." : "Run",
+      icon: isRunning ? (
+        <FaSpinner className="mr-2 mt-1 animate-spin" />
+      ) : (
+        <FaPlay className="mr-2 mt-1" />
+      ),
+      text: isRunning ? "Running..." : "Run",
       disabled:
-        loadingActionRun === "run" ||
+        isRunning ||
         code.trim().length === 0 ||
-        isGenerateBtnPressed ||
-        isRefactorBtnPressed ||
-        code.trim().length === 0,
+        isGenerating ||
+        isRefactoring,
+      isStreaming: isRunning,
+      cancelAction: cancelRun,
     },
     {
       action: clearAll,
@@ -1030,9 +239,9 @@ const CodeEditor = ({
       text: "Clear All",
       disabled:
         code.trim().length === 0 ||
-        isGenerateBtnPressed ||
-        isRefactorBtnPressed ||
-        loadingActionRun === "run",
+        isGenerating ||
+        isRefactoring ||
+        isRunning,
     },
     {
       action: handleCopy,
@@ -1042,93 +251,78 @@ const CodeEditor = ({
       disabled: code.trim().length === 0,
     },
     {
-      action: () => downloadFile(code, "file", language),
+      action: () => downloadCodeFile(code, "file", language),
       bgColor: "bg-orange-500",
       icon: <FaDownload className="mr-2 mt-1" />,
       text: "Download",
       disabled: code.trim().length === 0,
     },
     {
-      action: generateCodeMain,
+      action: handleGenerate,
       bgColor: "bg-green-500",
       icon:
-        loadingActionGen === "thinking" ? (
+        genLoadingAction === "thinking" ? (
           <GiBrain className="mr-2 mt-1 animate-bounce" />
-        ) : loadingActionGen === "generate" ? (
+        ) : isGenerating ? (
           <FaSpinner className="mr-2 mt-1 animate-spin" />
         ) : (
           <FaMagic className="mr-2 mt-1" />
         ),
       text:
-        loadingActionGen === "thinking"
+        genLoadingAction === "thinking"
           ? "Thinking..."
-          : loadingActionGen === "generate"
+          : isGenerating
           ? "Generating..."
           : "Generate",
-      disabled:
-        isDownloadBtnPressed || isRefactorBtnPressed || isGenerateBtnPressed,
+      disabled: isRunning || isRefactoring || isGenerating,
+      isStreaming: isGenerating,
+      cancelAction: cancelGenerate,
     },
     {
-      action: refactorCode,
+      action: handleRefactor,
       bgColor: "bg-yellow-500",
       icon:
-        loadingActionRefactor === "thinking" ? (
+        refactorLoadingAction === "thinking" ? (
           <GiBrain className="mr-2 mt-1 animate-bounce" />
-        ) : loadingActionRefactor === "refactor" ? (
+        ) : isRefactoring ? (
           <FaSpinner className="mr-2 mt-1 animate-spin" />
         ) : (
           <FaWrench className="mr-2 mt-1" />
         ),
       text:
-        loadingActionRefactor === "thinking"
+        refactorLoadingAction === "thinking"
           ? "Thinking..."
-          : loadingActionRefactor === "refactor"
+          : isRefactoring
           ? "Refactoring..."
           : "Refactor",
       disabled:
         code.trim().length === 0 ||
-        isDownloadBtnPressed ||
-        isGenerateBtnPressed ||
-        isRefactorBtnPressed,
+        isRunning ||
+        isGenerating ||
+        isRefactoring,
+      isStreaming: isRefactoring,
+      cancelAction: cancelRefactor,
     },
     {
-      action: shareLink,
+      action: handleShare,
       bgColor: "bg-fuchsia-500",
-      icon: <FaShare className="mr-2 mt-1" />,
-      text: "Share",
+      icon: isSharing ? (
+        <FaSpinner className="mr-2 mt-1 animate-spin" />
+      ) : (
+        <FaShare className="mr-2 mt-1" />
+      ),
+      text: isSharing ? "Sharing..." : "Share",
       disabled:
         code.trim().length === 0 ||
-        loadingActionRun === "run" ||
-        isRefactorBtnPressed ||
-        isGenerateBtnPressed,
+        isRunning ||
+        isRefactoring ||
+        isGenerating ||
+        isSharing,
     },
   ];
 
-  const RenderOutput = () => (
-    <>
-      <div className="mt-6 hacker-glass rounded-xl overflow-hidden border border-gray-200 dark:border-green-500/20 shadow-xl">
-        <div className="bg-gray-100/50 dark:bg-gray-800/50 p-3 border-b border-gray-200 dark:border-green-500/10 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <BiTerminal className="ml-2 text-xl text-green-400" />
-            <h2 className="text-lg font-bold text-gray-700 dark:text-green-400 tracking-wide">Output</h2>
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              AI-Simulated (Gemini)
-            </span>
-          </div>
-        </div>
-
-        <pre
-          ref={terminalRef}
-          className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-32 max-h-[400px] overflow-auto p-5 bg-gray-50/80 dark:bg-black/40 text-gray-800 dark:text-green-400 backdrop-blur-sm"
-        >
-          {output}
-        </pre>
-      </div>
-      <p className="ml-2 text-xs text-gray-500 italic">
-        Execution is AI-simulated via Gemini LLM. Output may differ from native compiler/runtime execution.
-      </p>
-    </>
-  );
+  const capitalizedLang =
+    language.charAt(0).toUpperCase() + language.slice(1);
 
   return (
     <div className="mx-auto p-4 max-w-6xl">
@@ -1138,32 +332,30 @@ const CodeEditor = ({
           <div className="flex items-center space-x-3">
             {reactIcon && (
               <div className="p-2 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg shadow-lg">
-                {React.createElement(reactIcon, { className: "text-lg text-white" })}
+                {React.createElement(reactIcon, {
+                  className: "text-xl text-white",
+                })}
               </div>
             )}
-            <h2 className="text-lg font-bold text-gray-800 dark:text-green-400 tracking-wider">
-              {language.charAt(0).toUpperCase() + language.slice(1)} Editor
-            </h2>
-          </div>
-          
-          {/* Keyboard Shortcut Hint */}
-          <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
-            <kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs">Ctrl</kbd>
-            <span>+</span>
-            <kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-xs">S</kbd>
-            <span className="ml-1">to save</span>
+            <div>
+              <h1 className="text-lg font-bold text-gray-800 dark:text-green-400">
+                {capitalizedLang}
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Interactive {capitalizedLang} Playground
+              </p>
+            </div>
           </div>
         </div>
-        
-        <MonacoEditor
-          language={language === "mongodb" ? "javascript" : language}
+
+        {/* Lazy-loaded Monaco Editor */}
+        <LazyMonacoEditor
+          language={language}
           value={code}
-          onChange={(newValue) => setCode(newValue)}
-          editorDidMount={(editor) => editor.focus()}
+          onChange={(newVal) => setCode(newVal || "")}
           onMount={handleEditorDidMount}
-          loading={`Loading ${capFirst(language)} Editor...`}
-          height="350px"
           theme={isDarkMode ? "vs-dark" : "vs-light"}
+          height="500px"
           options={{
             minimap: { enabled: false },
             matchBrackets: "always",
@@ -1177,30 +369,26 @@ const CodeEditor = ({
             cursorBlinking: "smooth",
             cursorSmoothCaretAnimation: true,
             cursorStyle: "line",
-            fontSize: fontSizeMap[deviceType],
+            fontSize: fontSizeMap[deviceType] || 14,
             readOnly: isEditorReadOnly,
             scrollBeyondLastLine: false,
           }}
         />
       </div>
-      
-      {/* Action Buttons */}
-      <div className="mt-6 flex flex-wrap justify-center gap-4">
-        {buttonsConfig.map(
-          ({ action, bgColor, icon, text, disabled }, index) => (
-            <button
-              key={index}
-              onClick={action}
-              className={`px-6 py-2.5 ${bgColor} text-white inline-flex items-center justify-center rounded-lg w-full sm:w-auto font-bold text-sm transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,255,0.3)] focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed hacker-btn shadow-lg`}
-              disabled={disabled}
-            >
-              <span className="mr-2">{icon}</span>
-              {text}
-            </button>
-          )
-        )}
-      </div>
-      <RenderOutput />
+
+      {/* Shared Action Toolbar */}
+      <EditorToolbar buttons={buttonsConfig} />
+
+      {/* Shared Output Panel */}
+      <OutputPanel
+        output={output}
+        isRunning={isRunning}
+        isSimulated={isSimulated}
+        error={runError}
+        terminalRef={terminalRef}
+        onClear={clearOutput}
+        onCancel={cancelRun}
+      />
     </div>
   );
 };

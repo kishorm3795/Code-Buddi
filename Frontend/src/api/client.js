@@ -80,19 +80,26 @@ const getRecaptchaToken = async (action = "submit") => {
   const siteKey = RECAPTCHA_SITE_KEY || "recaptcha-key";
 
   return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      resolve(null);
+    }, 2000);
+
     try {
       window.grecaptcha.ready(async () => {
         try {
           const token = await window.grecaptcha.execute(siteKey, {
             action,
           });
+          clearTimeout(timer);
           resolve(token);
         } catch (err) {
+          clearTimeout(timer);
           loggerError("Could not get reCAPTCHA token", { error: err.message });
           resolve(null);
         }
       });
     } catch {
+      clearTimeout(timer);
       resolve(null);
     }
   });

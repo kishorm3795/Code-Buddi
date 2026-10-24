@@ -146,7 +146,7 @@ const Login = () => {
   return (
     <div className="flex items-center justify-center min-h-[80dvh] bg-gray-50 dark:bg-gray-950 px-4 relative overflow-hidden hacker-grid-bg hacker-scanlines">
       {/* Background Effects */}
-      <div className="absolute inset-0 hacker-digital-rain opacity-10"></div>
+      <div className="absolute inset-0 hacker-digital-rain opacity-10 pointer-events-none"></div>
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-10 right-10 w-32 h-32 bg-[#bf00ff] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>
         <div className="absolute bottom-10 left-10 w-40 h-40 bg-[#00ff00] rounded-full filter blur-[100px] opacity-10 animate-pulse"></div>

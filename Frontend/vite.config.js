@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createHtmlPlugin } from 'vite-plugin-html';
 import tailwindcss from '@tailwindcss/vite'
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   base: "/",
@@ -38,6 +39,12 @@ export default defineConfig({
         minifyCSS: true,
         minifyJS: true,
       },
+    }),
+    visualizer({
+      filename: 'dist/stats.html',
+      gzipSize: true,
+      brotliSize: true,
+      open: false,
     }),
   ],
   build: {

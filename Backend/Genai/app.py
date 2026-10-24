@@ -83,7 +83,11 @@ def stream_gemini_content(contents, system_instruction, model=None):
             logging.error(f"Error during Gemini stream generation: {e}")
             yield f"\n[Generation Error: {str(e)}]"
 
-    return Response(stream_with_context(stream()), mimetype="text/plain")
+    resp = Response(stream_with_context(stream()), mimetype="text/plain")
+    resp.headers["X-AI-Simulated"] = "true"
+    resp.headers["X-Simulation"] = "true"
+    resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Simulation"
+    return resp
 
 
 def get_generated_code(problem_description, language, prompt_version=None):

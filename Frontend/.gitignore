@@ -85,6 +85,10 @@ nbproject/
 Thumbs.db
 Desktop.ini
 
+# Test artifacts
+test-results/
+playwright-report/
+
 # Miscellaneous
 *.log
 *.tmp
