@@ -1,6 +1,5 @@
 # Caddy Gateway Configuration for Code-Buddi
 # Automatic HTTPS, single base URL, and reverse proxying by path
-
 :80 {
     # Health check
     respond /healthz 200 {
@@ -8,7 +7,8 @@
     }
 
     # 1. Login service routing (/api/*)
-    handle_path /api/* {
+    # Use 'handle' to preserve the '/api' prefix expected by Express router (app.use('/api', apiRoutes))
+    handle /api/* {
         reverse_proxy login:5003 {
             header_up Host {host}
             header_up X-Real-IP {remote}
@@ -18,6 +18,7 @@
     }
 
     # 2. GenAI service routing (/ai/*)
+    # Use 'handle_path' to strip '/ai' so /ai/generate maps to Genai's /generate
     handle_path /ai/* {
         reverse_proxy genai:5001 {
             flush_interval -1 # Disable response buffering for SSE stream generation
@@ -29,6 +30,7 @@
     }
 
     # 3. TempFile service routing (/share/*)
+    # Use 'handle_path' to strip '/share' so /share/upload maps to TempFile's /upload
     handle_path /share/* {
         reverse_proxy tempfile:5002 {
             header_up Host {host}
@@ -38,7 +40,7 @@
         }
     }
 
-    # 4. Frontend SPA fallback
+    # 4. Frontend SPA fallback (serves static files or proxies to frontend container)
     handle {
         reverse_proxy frontend:80
     }

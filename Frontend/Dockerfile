@@ -1,39 +1,29 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Multi-stage Dockerfile for Frontend
+# Stage 1: Build with Node 22 and Vite
+FROM node:22-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Set environment variables
 ENV NODE_ENV=production
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy application code
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Production stage
+# Stage 2: Serve static files with Nginx
 FROM nginx:alpine
 
-# Copy built assets from builder stage
+# Copy built static assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom nginx configuration acting as API Gateway & SPA router
+# Copy custom Nginx configuration with SPA fallback and reverse proxy routing
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget -qO- http://localhost/healthz || exit 1
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,5 +1,5 @@
-# Use official Node.js runtime as base image
-FROM node:20-alpine
+# Use official Node.js 22 slim runtime
+FROM node:22-slim
 
 # Set working directory
 WORKDIR /app
@@ -7,27 +7,30 @@ WORKDIR /app
 # Set environment variables
 ENV NODE_ENV=production
 
-# Copy package files
+# Install curl for container health check
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package manifests first for caching
 COPY package*.json ./
 
-# Install dependencies
-RUN apk add --no-cache curl && \
-    npm ci --only=production
+# Install production dependencies
+RUN npm ci --omit=dev
 
-# Copy application code
+# Copy application files
 COPY . .
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-USER nextjs
+# Set non-root user permissions
+RUN chown -R node:node /app
+USER node
 
-# Expose port
+# Expose service port
 EXPOSE 5003
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Health check hitting /health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:5003/health || exit 1
 
-# Start the application
+# Start server
 CMD ["npm", "start"]

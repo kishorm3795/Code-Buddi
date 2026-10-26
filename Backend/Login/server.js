@@ -9,19 +9,10 @@ const logger = pino({
     level: process.env.LOG_LEVEL || 'info',
 });
 
-// Requirement 7: In production, refuse to start if critical configs are missing
-if (process.env.NODE_ENV === 'production') {
-    const missing = [];
-    if (!process.env.RECAPTCHA_SECRET_KEY) missing.push('RECAPTCHA_SECRET_KEY');
-    if (!process.env.JWT_SECRET) missing.push('JWT_SECRET');
-    if (!process.env.MONGO_URI) missing.push('MONGO_URI');
-    if (!process.env.ALLOWED_ORIGINS) missing.push('ALLOWED_ORIGINS');
+const { validateEnv } = require('./config/envValidator');
 
-    if (missing.length > 0) {
-        logger.error(`FATAL: Missing required production environment variables: ${missing.join(', ')}`);
-        process.exit(1);
-    }
-}
+// Validate environment variables on startup
+validateEnv(logger);
 
 const corsOptions = require('./config/corsOptions');
 const { connectDB } = require('./config/db');
