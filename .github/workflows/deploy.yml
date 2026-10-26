@@ -1,0 +1,71 @@
+name: Build & Deploy Docker Images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-docker-images:
+    name: Build Multi-Service Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Login Service Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Backend/Login
+          file: ./Backend/Login/Dockerfile
+          push: false
+          tags: codebuddi-login:latest
+
+      - name: Build GenAI Service Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Backend/Genai
+          file: ./Backend/Genai/Dockerfile
+          push: false
+          tags: codebuddi-genai:latest
+
+      - name: Build TempFile Service Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Backend/TempFile
+          file: ./Backend/TempFile/Dockerfile
+          push: false
+          tags: codebuddi-tempfile:latest
+
+      - name: Build Frontend Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Frontend
+          file: ./Frontend/Dockerfile
+          push: false
+          tags: codebuddi-frontend:latest
+
+  deploy:
+    name: Optional Cloud Deployment
+    needs: build-docker-images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger Render Backend Deployment Hook (if configured)
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Triggering Render deployment webhook..."
+          curl -f -X POST "${RENDER_DEPLOY_HOOK_URL}" || echo "Webhook trigger warning: verify URL"
+
+      - name: Trigger Vercel Frontend Deploy Hook (if configured)
+        if: env.VERCEL_DEPLOY_HOOK_URL != ''
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Triggering Vercel deployment webhook..."
+          curl -f -X POST "${VERCEL_DEPLOY_HOOK_URL}" || echo "Webhook trigger warning: verify URL"

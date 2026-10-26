@@ -26,6 +26,16 @@ export const SESSION_STORAGE_FETCH_STATUS_KEY = '__fetchstatus__';
 export const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+// Validate frontend client environment configuration on startup
+if (typeof window !== 'undefined' && import.meta.env.MODE !== 'test') {
+  const missingFrontendVars = [];
+  if (!RECAPTCHA_SITE_KEY) missingFrontendVars.push('VITE_RECAPTCHA_SITE_KEY');
+  if (!GOOGLE_CLIENT_ID) missingFrontendVars.push('VITE_GOOGLE_CLIENT_ID');
+  if (missingFrontendVars.length > 0) {
+    console.warn(`[Frontend] ⚠️ Recommended environment variables not set:\n  - ${missingFrontendVars.join('\n  - ')}`);
+  }
+}
+
 export const USERNAME_REGEX = /^[a-zA-Z0-9_.-]{5,30}$/;
 export const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
 export const PASSWORD_REGEX = /^.{8,}$/;

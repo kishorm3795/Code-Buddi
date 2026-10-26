@@ -106,6 +106,11 @@ allowed_origins = [
 ]
 CORS(app, origins=allowed_origins, supports_credentials=True)
 
+from env_validator import validate_env
+
+# Validate environment variables on startup
+validate_env()
+
 is_production = (
     os.getenv("APP_ENV") == "production"
     or os.getenv("FLASK_ENV") == "production"
@@ -113,10 +118,6 @@ is_production = (
 )
 
 if is_production:
-    if not os.getenv("RECAPTCHA_SECRET_KEY"):
-        raise RuntimeError("FATAL: RECAPTCHA_SECRET_KEY must be configured in production.")
-    if not os.getenv("REDIS_HOST"):
-        raise RuntimeError("FATAL: REDIS_HOST must be configured in production.")
     test_client = get_redis_connection()
     if not test_client or isinstance(test_client, MockRedis):
         raise RuntimeError(

@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   # MongoDB Database
-  mongodb:
+  mongo:
     image: mongo:6
-    container_name: codebuddi-mongodb
+    container_name: codebuddi-mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -12,13 +10,19 @@ services:
       - mongodb_data:/data/db
     environment:
       - MONGO_INITDB_DATABASE=codebuddi
+    networks:
+      codebuddi-net:
+        aliases:
+          - mongodb
+          - mongo
     healthcheck:
-      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1 || mongo --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
-  # Redis Database
+  # Redis In-Memory Store
   redis:
     image: redis:7-alpine
     container_name: codebuddi-redis
@@ -28,13 +32,16 @@ services:
     volumes:
       - redis_data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      - codebuddi-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
 
-  # Backend - Login Service
+  # Backend - Login Service (Node 22 slim)
   login:
     build:
       context: ./Backend/Login
@@ -43,27 +50,29 @@ services:
     restart: unless-stopped
     ports:
       - "5003:5003"
+    env_file:
+      - path: ./Backend/Login/.env
+        required: false
+      - path: .env
+        required: false
     environment:
       - PORT=5003
-      - MONGO_URI=mongodb://mongodb:27017/codebuddi
-      - JWT_SECRET=${JWT_SECRET}
+      - MONGO_URI=mongodb://mongo:27017/codebuddi
       - NODE_ENV=production
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - OTP_EMAIL_SERVICE=${OTP_EMAIL_SERVICE}
-      - OTP_EMAIL_USER=${OTP_EMAIL_USER}
-      - OTP_EMAIL_PASS=${OTP_EMAIL_PASS}
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
     depends_on:
-      mongodb:
+      mongo:
         condition: service_healthy
+    networks:
+      - codebuddi-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5003/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 15s
 
-  # Backend - Genai Service
+  # Backend - Genai Service (Python 3.12 slim + gunicorn)
   genai:
     build:
       context: ./Backend/Genai
@@ -72,24 +81,28 @@ services:
     restart: unless-stopped
     ports:
       - "5001:5001"
+    env_file:
+      - path: ./Backend/Genai/.env
+        required: false
+      - path: .env
+        required: false
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
-      - GEMINI_MODEL_1=${GEMINI_MODEL_1:-gemini-2.5-flash}
-      - JWT_SECRET=${JWT_SECRET}
-      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
-      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
+      - PORT=5001
       - FLASK_ENV=production
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
     depends_on:
-      - login
+      login:
+        condition: service_healthy
+    networks:
+      - codebuddi-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 15s
 
-  # Backend - TempFile Service
+  # Backend - TempFile Service (Python 3.12 slim + gunicorn)
   tempfile:
     build:
       context: ./Backend/TempFile
@@ -98,26 +111,32 @@ services:
     restart: unless-stopped
     ports:
       - "5002:5002"
+    env_file:
+      - path: ./Backend/TempFile/.env
+        required: false
+      - path: .env
+        required: false
     environment:
+      - PORT=5002
       - TEMP_FILE_URL=http://localhost:5002
-      - JWT_SECRET=${JWT_SECRET}
-      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - REDIS_SSL=false
-      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
       - FLASK_ENV=production
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    networks:
+      - codebuddi-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 15s
 
-  # Frontend & API Gateway (Nginx Reverse Proxy on Port 80)
+  # Frontend & Reverse Proxy (Vite build + Nginx static server & gateway)
   frontend:
     build:
       context: ./Frontend
@@ -126,20 +145,32 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    env_file:
+      - path: ./Frontend/.env
+        required: false
+      - path: .env
+        required: false
     environment:
       - VITE_API_GATEWAY_URL=
-      - VITE_RECAPTCHA_SITE_KEY=${VITE_RECAPTCHA_SITE_KEY}
-      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     depends_on:
-      - login
-      - genai
-      - tempfile
+      login:
+        condition: service_healthy
+      genai:
+        condition: service_healthy
+      tempfile:
+        condition: service_healthy
+    networks:
+      - codebuddi-net
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 10s
+
+networks:
+  codebuddi-net:
+    driver: bridge
 
 volumes:
   mongodb_data:

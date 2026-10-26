@@ -125,5 +125,4 @@ develop-eggs/
 egg-info/
 
 # Vercel
-vercel.json
 .vercel

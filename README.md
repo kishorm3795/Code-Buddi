@@ -6,41 +6,67 @@ An online IDE with secure login functionality that allows users to run code, gen
 
 ![Lines of code](https://sloc.xyz/github/kishorm3795/Code-Buddi)
 
-## Structure of a `.env` File
+## Environment Variables Reference
 
-```dotenv
-#Frontend
-VITE_GEMINI_API_URL=
-VITE_BACKEND_API_URL=
-VITE_TEMP_SHARE_URL= #same as TEMP_FILE_URL
-VITE_RECAPTCHA_SITE_KEY=
-VITE_GOOGLE_CLIENT_ID=
+Each service maintains its own dedicated `.env.example` file with startup validation:
+- [`Frontend/.env.example`](Frontend/.env.example)
+- [`Backend/Login/.env.example`](Backend/Login/.env.example)
+- [`Backend/Genai/.env.example`](Backend/Genai/.env.example)
+- [`Backend/TempFile/.env.example`](Backend/TempFile/.env.example)
+- Master root template: [`.env.example`](.env.example)
 
-#Login
-MONGO_URI=
-JWT_SECRET=
-PORT=
-OTP_EMAIL_SERVICE=
-OTP_EMAIL_USER=
-OTP_EMAIL_PASS=
-RECAPTCHA_SECRET_KEY=
-GOOGLE_CLIENT_ID= #same as VITE_GOOGLE_CLIENT_ID
+### Frontend (`Frontend/.env`)
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `VITE_API_GATEWAY_URL` | Optional | `""` (relative) | Base URL of API Gateway / reverse proxy. Leave empty when behind Nginx/Caddy proxy. |
+| `VITE_BACKEND_API_URL` | Optional | `http://localhost:5003` | Fallback direct URL to Login service when no API Gateway is present. |
+| `VITE_GEMINI_API_URL` | Optional | `http://localhost:5001` | Fallback direct URL to GenAI service when no API Gateway is present. |
+| `VITE_TEMP_SHARE_URL` | Optional | `http://localhost:5002` | Fallback direct URL to TempFile service when no API Gateway is present. |
+| `VITE_RECAPTCHA_SITE_KEY` | Recommended | None | Google reCAPTCHA v3 public site key for bot verification. |
+| `VITE_GOOGLE_CLIENT_ID` | Recommended | None | Google OAuth 2.0 Web Client ID for Google Sign-In. |
+| `VITE_LOG_LEVEL` | Optional | `INFO` | Client console logging verbosity (`DEBUG`, `INFO`, `WARN`, `ERROR`). |
 
-#GenAi
-GEMINI_API_KEY=
-GEMINI_MODEL=
-GEMINI_MODEL_1=
-JWT_SECRET= #same from Login
-RECAPTCHA_SECRET_KEY= #same as Login
+### Backend - Login Service (`Backend/Login/.env`)
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PORT` | Optional | `5003` | Port on which the Login Express server listens. |
+| `NODE_ENV` | Optional | `development` | Runtime environment (`development`, `production`, `test`). |
+| `MONGO_URI` | **Required** | `mongodb://127.0.0.1:27017/codebuddi` | MongoDB connection string (local or MongoDB Atlas SRV URI). |
+| `JWT_SECRET` | **Required** | None | HS512 cryptographic key used to sign session JWTs. Must match Genai and TempFile. |
+| `RECAPTCHA_SECRET_KEY` | **Required (Prod)** | None | Google reCAPTCHA v3 secret key used to verify client tokens. |
+| `GOOGLE_CLIENT_ID` | Optional | None | Google OAuth 2.0 Client ID for server-side ID token verification. |
+| `OTP_EMAIL_SERVICE` | Optional | `gmail` | Nodemailer service provider name for sending OTP emails. |
+| `OTP_EMAIL_USER` | Optional | None | Sender email address for 6-digit OTP delivery (in dev, OTP prints to console if empty). |
+| `OTP_EMAIL_PASS` | Optional | None | App password for SMTP sender account. |
+| `ALLOWED_ORIGINS` | **Required (Prod)** | `http://localhost:5173` | Comma-separated list of allowed frontend origins for CORS. |
+| `LOG_LEVEL` | Optional | `info` | Pino logger level (`debug`, `info`, `warn`, `error`). |
 
-#TempFile
-REDIS_HOST=
-REDIS_PASSWORD=
-REDIS_PORT=6379
-TEMP_FILE_URL= #same as VITE_TEMP_SHARE_URL
-JWT_SECRET= #same from Login
-RECAPTCHA_SECRET_KEY= #same as Login
-```
+### Backend - Genai Service (`Backend/Genai/.env`)
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PORT` | Optional | `5001` | Port on which the Genai Flask server listens. |
+| `FLASK_ENV` | Optional | `development` | Flask runtime environment (`development`, `production`). |
+| `GEMINI_API_KEY` | **Required** | None | Google Gemini API key obtained from Google AI Studio. |
+| `GEMINI_MODEL` | Optional | `gemini-2.5-pro` | Gemini model for code generation and refactoring. |
+| `GEMINI_MODEL_1` | Optional | `gemini-2.5-flash` | Secondary fast Gemini model for lightweight tasks. |
+| `JWT_SECRET` | **Required** | None | HS512 JWT verification key (must match Login service). |
+| `RECAPTCHA_SECRET_KEY` | **Required (Prod)** | None | Google reCAPTCHA v3 secret key for rate/bot limiting. |
+| `ALLOWED_ORIGINS` | **Required (Prod)** | `http://localhost:5173` | Comma-separated list of allowed CORS origins. |
+
+### Backend - TempFile Service (`Backend/TempFile/.env`)
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PORT` | Optional | `5002` | Port on which the TempFile Flask server listens. |
+| `FLASK_ENV` | Optional | `development` | Flask runtime environment (`development`, `production`). |
+| `APP_ENV` | Optional | `development` | Application mode flag (`development`, `production`). |
+| `TEMP_FILE_URL` | **Required (Prod)**| `http://localhost:5002` | Base URL used when formatting shareable snippet links. |
+| `REDIS_HOST` | **Required (Prod)**| `localhost` | Redis host (or container hostname `redis`, or Upstash domain). |
+| `REDIS_PORT` | Optional | `6379` | Redis port number. |
+| `REDIS_PASSWORD` | Optional | `""` | Redis authentication password/token (blank for unauthenticated local Redis). |
+| `REDIS_SSL` | Optional | `false` | Enable TLS encryption (`true` for Upstash / Redis Cloud). |
+| `JWT_SECRET` | **Required** | None | HS512 JWT verification key (must match Login service). |
+| `RECAPTCHA_SECRET_KEY` | **Required (Prod)** | None | Google reCAPTCHA v3 secret key for upload verification. |
+| `ALLOWED_ORIGINS` | **Required (Prod)** | `http://localhost:5173` | Comma-separated list of allowed CORS origins. |
 
 ## Diagram
 
@@ -103,9 +129,34 @@ To set up and run:
 - [Pip](https://pip.pypa.io/en/stable/) Python package installer
 
 ## Clone the repository:
-```
+```bash
 git clone --depth 1 https://github.com/kishorm3795/Code-Buddi.git
+cd Code-Buddi
 ```
+
+## Quick Start: Local Full-Stack with Docker Compose
+
+Run the entire application stack (MongoDB, Redis, Login, GenAI, TempFile, Frontend & Nginx Gateway) with one command:
+
+1. Copy `.env.example` to `.env` (or configure per-service `.env` files):
+```bash
+cp .env.example .env
+```
+2. Build and launch all services:
+```bash
+docker compose up --build
+```
+3. Access the application:
+- **Frontend & Gateway**: `http://localhost` (or `http://localhost:80`)
+- **Login Health**: `http://localhost:5003/health`
+- **GenAI Health**: `http://localhost:5001/health`
+- **TempFile Health**: `http://localhost:5002/health`
+
+For complete cloud deployment instructions (MongoDB Atlas, Upstash Redis TLS, Render, Vercel, Netlify, Custom Domains), see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+---
+
+## Manual Local Development Setup
 
 ## Backend Login
 
