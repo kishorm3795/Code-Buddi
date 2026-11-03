@@ -267,6 +267,7 @@ In `Frontend/src/utils/apifetch.js`:
 | `/api/change-password` | POST | Login | `/api/change-password` | ✅ | ✅ | Sets `httpOnly` |
 | `/api/runCode/count` | POST | Login | `/api/runCode/count` | ✅ | ✅ | ✅ |
 | `/api/user/sharedLink/:id` | DELETE | Login | `/api/user/sharedLink/:id` | ✅ | ✅ | ✅ |
+| `/execute` | POST | GenAI | `/ai/execute` | ✅ | ✅ | ✅ |
 | `/generate_code` | POST | GenAI | `/ai/generate_code` | ✅ | ✅ | ✅ |
 | `/get-output` | POST | GenAI | `/ai/get-output` | ✅ | ✅ | ✅ |
 | `/refactor_code` | POST | GenAI | `/ai/refactor_code` | ✅ | ✅ | ✅ |
@@ -276,3 +277,50 @@ In `Frontend/src/utils/apifetch.js`:
 | `/file/:id/delete` | DELETE | TempFile | `/share/file/:id/delete` | ✅ | ✅ | ✅ |
 | `/api/prompts` | GET | GenAI | `/ai/api/prompts` | ❌ | ❌ | N/A |
 | `/file/:shareId` | GET | TempFile | `/share/file/:shareId` | ❌ | ❌ | N/A |
+
+---
+
+## 6. Sandboxed Execution & Per-User Quota Engine
+
+### 6.1 Sandbox Architecture Topology
+```
+Browser Client (React 19)
+    |
+    | POST /ai/execute (JWT Cookie + reCAPTCHA + stdin + code)
+    v
+API Gateway (Nginx / Caddy)
+    |
+    v
+Backend GenAI Service (:5001)
+    |
+    +---> Redis Quota Manager (:6379)
+    |        - Daily Sliding-Window Limit (e.g. 100 runs/day per userId)
+    |        - Burst Limiter (max 15 runs/min per userId)
+    |        - Concurrency Semaphore (max 2 parallel runs per userId)
+    |
+    +---> Piston / gVisor Sandboxed Runner (:2000)
+             - Container Isolation (gVisor runsc / Linux unshare)
+             - Network: NONE (fully airgapped)
+             - Resource Limits: 1 vCPU, 256MB RAM, 64 PIDs, 16MB tmpfs
+             - Timeout: 5.0s SIGTERM watchdog, 6.0s hard SIGKILL
+```
+
+### 6.2 Supported Languages (19 Core Languages)
+The execution engine normalizes and executes all 19 Code-Buddi languages:
+`python`, `javascript`, `typescript`, `c`, `cpp`, `java`, `csharp`, `rust`, `go`, `kotlin`, `swift`, `ruby`, `dart`, `perl`, `scala`, `julia`, `verilog`, `sql`, `mongodb`.
+- **Verilog**: Uses Icarus Verilog (`iverilog` + `vvp`) with an execution watchdog harness.
+- **SQL**: Executes standard ANSI SQL queries against an in-memory SQLite sandbox with tabular headers.
+- **MongoDB**: Evaluates document queries via an in-memory collection harness supporting standard `mongosh` syntax (`insertOne`, `find`, `countDocuments`).
+
+### 6.3 Abuse & Limit Controls Matrix
+| Guardrail | Enforcement Mechanism | Limit / Threshold |
+| :--- | :--- | :--- |
+| **CPU Quota** | Cgroups v2 `cpu.max` | 1.0 core maximum |
+| **Memory Limit** | Cgroups v2 `memory.max` (swap disabled) | 256 MB hard cap |
+| **PID Limit** | Cgroups v2 `pids.max` (fork bomb defense) | 64 processes max |
+| **Filesystem** | Read-only rootfs + ephemeral tmpfs | 16 MB tmpfs, `noexec,nodev,nosuid` |
+| **Network** | Docker `--network none` | Completely disabled (SSRF proof) |
+| **Timeout** | Dual-tier runner & OS watchdog | 5s default timeout, 10s maximum |
+| **User Quotas** | Redis atomic pipeline counters | 100 runs/day default (Free tier) |
+| **Concurrency** | Redis semaphore lock | Max 2 parallel executions per user |
+
