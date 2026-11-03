@@ -17,6 +17,7 @@ import { useShare } from "../hooks/useShare";
 import LazyMonacoEditor from "./editor/LazyMonacoEditor";
 import EditorToolbar from "./editor/EditorToolbar";
 import OutputPanel from "./editor/OutputPanel";
+import StdinDrawer from "./editor/StdinDrawer";
 import { downloadCodeFile } from "../utils/fileDownloader";
 import { loadSampleCode } from "../utils/sampleLoader";
 
@@ -41,6 +42,7 @@ const CodeEditor = ({
   const [deviceType, setDeviceType] = useState("pc");
   const [cpyBtnState, setCpyBtnState] = useState("Copy");
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
+  const [stdin, setStdin] = useState("");
 
   const editorRef = useRef(null);
   const terminalRef = useRef(null);
@@ -174,12 +176,13 @@ const CodeEditor = ({
     executeRun({
       code,
       language,
+      stdin,
       apiEndpoint,
       terminalRef,
     }).finally(() => {
       setIsEditorReadOnly(false);
     });
-  }, [code, language, apiEndpoint, executeRun]);
+  }, [code, language, stdin, apiEndpoint, executeRun]);
 
   const handleGenerate = useCallback(() => {
     setIsEditorReadOnly(true);
@@ -378,6 +381,9 @@ const CodeEditor = ({
 
       {/* Shared Action Toolbar */}
       <EditorToolbar buttons={buttonsConfig} />
+
+      {/* Interactive Standard Input Drawer */}
+      <StdinDrawer stdin={stdin} setStdin={setStdin} disabled={isRunning} />
 
       {/* Shared Output Panel */}
       <OutputPanel
