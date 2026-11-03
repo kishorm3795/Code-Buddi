@@ -54,6 +54,9 @@ const CodeEditor = ({
     setOutput,
     isRunning,
     isSimulated,
+    engine,
+    metrics,
+    quota,
     error: runError,
     runCode: executeRun,
     cancelRun,
@@ -390,6 +393,9 @@ const CodeEditor = ({
         output={output}
         isRunning={isRunning}
         isSimulated={isSimulated}
+        metrics={metrics}
+        quota={quota}
+        engine={engine}
         error={runError}
         terminalRef={terminalRef}
         onClear={clearOutput}

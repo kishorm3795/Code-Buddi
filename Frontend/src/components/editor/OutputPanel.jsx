@@ -11,6 +11,9 @@ export const OutputPanel = ({
   output = "",
   isRunning = false,
   isSimulated = false,
+  metrics = null,
+  quota = null,
+  engine = null,
   error = null,
   onClear = null,
   onCancel = null,
@@ -32,18 +35,46 @@ export const OutputPanel = ({
   return (
     <div className="mt-6 hacker-glass rounded-xl overflow-hidden border border-gray-200 dark:border-green-500/20 shadow-xl">
       {/* Panel Header */}
-      <div className="bg-gray-100/50 dark:bg-gray-800/50 p-3 border-b border-gray-200 dark:border-green-500/10 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <div className="bg-gray-100/50 dark:bg-gray-800/50 p-3 border-b border-gray-200 dark:border-green-500/10 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
           <BiTerminal className="ml-2 text-xl text-green-400" />
           <h2 className="text-lg font-bold text-gray-700 dark:text-green-400 tracking-wide">
             Output
           </h2>
-          {isSimulated && (
+          {isSimulated ? (
             <span
               data-testid="ai-simulated-badge"
               className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
             >
               AI-Simulated (Gemini)
+            </span>
+          ) : (
+            <span
+              data-testid="sandboxed-badge"
+              className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
+            >
+              Sandboxed Execution
+            </span>
+          )}
+          {metrics?.executionTimeMs !== undefined && metrics?.executionTimeMs !== null && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-blue-500/10 text-blue-500 border border-blue-500/20">
+              {metrics.executionTimeMs}ms
+            </span>
+          )}
+          {metrics?.exitCode !== undefined && metrics?.exitCode !== null && (
+            <span
+              className={`text-[11px] px-2 py-0.5 rounded-full font-mono border ${
+                metrics.exitCode === 0
+                  ? "bg-green-500/10 text-green-500 border-green-500/20"
+                  : "bg-red-500/10 text-red-500 border-red-500/20"
+              }`}
+            >
+              {metrics.exitCode === 0 ? "Exit 0" : `Exit ${metrics.exitCode}`}
+            </span>
+          )}
+          {quota?.dailyRemaining !== undefined && quota?.dailyRemaining !== null && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              Runs: {quota.dailyRemaining}/{quota.dailyLimit}
             </span>
           )}
           {isRunning && (
