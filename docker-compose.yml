@@ -41,6 +41,30 @@ services:
       retries: 5
       start_period: 5s
 
+  # Sandboxed Execution Engine (Piston)
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: codebuddi-piston
+    restart: unless-stopped
+    ports:
+      - "2000:2000"
+    volumes:
+      - piston_packages:/piston/packages
+    environment:
+      - PISTON_BIND_ADDRESS=0.0.0.0:2000
+      - PISTON_RUN_TIMEOUT=10000
+      - PISTON_COMPILE_TIMEOUT=15000
+      - PISTON_OUTPUT_MAX_SIZE=524288
+      - PISTON_MAX_CONCURRENT_JOBS=10
+    networks:
+      - codebuddi-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:2000/api/v2/packages >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # Backend - Login Service (Node 22 slim)
   login:
     build:
@@ -90,8 +114,17 @@ services:
       - PORT=5001
       - FLASK_ENV=production
       - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://127.0.0.1:5173
+      - PISTON_URL=http://piston:2000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_SSL=false
+      - EXECUTION_ENGINE=sandboxed
     depends_on:
       login:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      piston:
         condition: service_healthy
     networks:
       - codebuddi-net
@@ -175,3 +208,4 @@ networks:
 volumes:
   mongodb_data:
   redis_data:
+  piston_packages:
