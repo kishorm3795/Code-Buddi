@@ -17,6 +17,8 @@ from google.genai import types
 from prompts import *
 from prompt_registry import registry
 from utils import *
+from runner_client import runner_client, RunnerUnavailableError, RunnerError
+from language_config import resolve_language, get_supported_languages
 
 import json
 import sys
@@ -297,6 +299,80 @@ def get_output_api():
     except Exception as e:
         logging.error(f"Error in /get-output endpoint: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/execute", methods=["POST"])
+@token_required
+def execute_code_api():
+    logging.info("Received request for /execute")
+
+    try:
+        token = request.headers.get("X-Recaptcha-Token")
+
+        if not is_human(token):
+            logging.warning("reCAPTCHA verification failed for /execute.")
+            abort(403, description="reCAPTCHA verification failed.")
+
+        data = request.get_json(silent=True) or {}
+        code = data.get("code")
+        language_raw = data.get("language")
+        stdin = data.get("stdin", "")
+        args = data.get("args") or data.get("command_line_arguments") or []
+        timeout_seconds = data.get("timeout_seconds")
+
+        if not code or not str(code).strip():
+            return jsonify({"error": {"code": "MISSING_CODE", "message": "Code is required and cannot be empty"}}), 400
+
+        if not language_raw:
+            return jsonify({"error": {"code": "MISSING_LANGUAGE", "message": "Language is required"}}), 400
+
+        lang_spec = resolve_language(language_raw)
+        if not lang_spec:
+            supported = sorted(list(get_supported_languages()))
+            logging.warning(f"Unsupported language requested for /execute: {language_raw}")
+            return jsonify({
+                "error": {
+                    "code": "UNSUPPORTED_LANGUAGE",
+                    "message": f"Language '{language_raw}' is not supported.",
+                    "supported_languages": supported,
+                }
+            }), 400
+
+        code_str = str(code)
+        if len(code_str.encode("utf-8")) > MAX_SIZE:
+            logging.warning("Code size exceeds maximum allowed limit.")
+            return jsonify({"error": {"code": "PAYLOAD_TOO_LARGE", "message": "Code size exceeds the 500 KB limit"}}), 413
+
+        if len(str(stdin).encode("utf-8")) > 65536:
+            return jsonify({"error": {"code": "STDIN_TOO_LARGE", "message": "Stdin exceeds 64 KB limit"}}), 413
+
+        logging.info(f"Executing sandboxed code for language: {lang_spec.canonical_id}")
+        result = runner_client.execute(
+            language=lang_spec.piston_language,
+            code=code_str,
+            stdin=stdin,
+            args=args,
+            timeout_seconds=timeout_seconds,
+            filename=lang_spec.default_filename,
+        )
+
+        resp = jsonify(result)
+        resp.headers["X-AI-Simulated"] = "false"
+        resp.headers["X-Execution-Engine"] = "piston-sandbox"
+        resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Execution-Engine, X-Quota-Limit, X-Quota-Remaining, X-Quota-Reset"
+        return resp
+
+    except RunnerUnavailableError as e:
+        logging.error(f"Sandbox runner is unavailable: {e}")
+        return jsonify({
+            "error": {
+                "code": "SANDBOX_UNAVAILABLE",
+                "message": "Sandboxed code execution service is temporarily unavailable. Please try again shortly.",
+            }
+        }), 503
+    except Exception as e:
+        logging.error(f"Unexpected error in /execute endpoint: {e}")
+        return jsonify({"error": {"code": "INTERNAL_SERVER_ERROR", "message": str(e)}}), 500
 
 
 @app.route("/refactor_code", methods=["POST"])
