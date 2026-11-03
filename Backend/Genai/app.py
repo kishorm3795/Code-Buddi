@@ -20,6 +20,20 @@ from utils import *
 from runner_client import runner_client, RunnerUnavailableError, RunnerError
 from language_config import resolve_language, get_supported_languages
 from quota import quota_manager, DAILY_QUOTA_DEFAULT
+from harnesses import prepare_verilog_payload, prepare_sql_payload, prepare_mongodb_payload
+
+
+def apply_language_harness(spec, code: str) -> str:
+    """Preprocess code with specialized language harnesses for complex environments."""
+    if not spec or not getattr(spec, "requires_custom_harness", False):
+        return code
+    if spec.canonical_id == "verilog":
+        return prepare_verilog_payload(code)
+    elif spec.canonical_id == "sql":
+        return prepare_sql_payload(code)
+    elif spec.canonical_id == "mongodb":
+        return prepare_mongodb_payload(code)
+    return code
 
 import json
 import sys
@@ -308,9 +322,10 @@ def get_output_api():
             if lang_spec:
                 try:
                     logging.info(f"Routing /get-output to sandboxed runner for language: {lang_spec.canonical_id}")
+                    processed_code = apply_language_harness(lang_spec, code)
                     runner_res = runner_client.execute(
                         language=lang_spec.piston_language,
-                        code=code,
+                        code=processed_code,
                         filename=lang_spec.default_filename,
                     )
                     run_info = runner_res.get("run", {})
@@ -443,9 +458,10 @@ def execute_code_api():
                 return jsonify({"error": {"code": "STDIN_TOO_LARGE", "message": "Stdin exceeds 64 KB limit"}}), 413
 
             logging.info(f"Executing sandboxed code for language: {lang_spec.canonical_id} (user: {user_id})")
+            processed_code = apply_language_harness(lang_spec, code_str)
             result = runner_client.execute(
                 language=lang_spec.piston_language,
-                code=code_str,
+                code=processed_code,
                 stdin=stdin,
                 args=args,
                 timeout_seconds=timeout_seconds,
