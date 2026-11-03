@@ -19,6 +19,7 @@ from prompt_registry import registry
 from utils import *
 from runner_client import runner_client, RunnerUnavailableError, RunnerError
 from language_config import resolve_language, get_supported_languages
+from quota import quota_manager, DAILY_QUOTA_DEFAULT
 
 import json
 import sys
@@ -326,6 +327,28 @@ def execute_code_api():
         if not language_raw:
             return jsonify({"error": {"code": "MISSING_LANGUAGE", "message": "Language is required"}}), 400
 
+        user_info = getattr(request, "user", {}) or {}
+        user_id = user_info.get("userId") or user_info.get("id") or "anonymous"
+
+        allowed, remaining, reset_seconds = quota_manager.check_daily_quota(user_id)
+        if not allowed:
+            logging.warning(f"User {user_id} exceeded daily execution quota.")
+            err_resp = jsonify({
+                "error": {
+                    "code": "QUOTA_EXCEEDED",
+                    "message": f"Daily code execution quota reached. Resets in {reset_seconds}s.",
+                    "daily_limit": DAILY_QUOTA_DEFAULT,
+                    "daily_remaining": 0,
+                    "reset_seconds": reset_seconds,
+                }
+            })
+            err_resp.status_code = 429
+            err_resp.headers["Retry-After"] = str(reset_seconds)
+            err_resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+            err_resp.headers["X-Quota-Remaining"] = "0"
+            err_resp.headers["X-Quota-Reset"] = str(reset_seconds)
+            return err_resp
+
         lang_spec = resolve_language(language_raw)
         if not lang_spec:
             supported = sorted(list(get_supported_languages()))
@@ -346,7 +369,7 @@ def execute_code_api():
         if len(str(stdin).encode("utf-8")) > 65536:
             return jsonify({"error": {"code": "STDIN_TOO_LARGE", "message": "Stdin exceeds 64 KB limit"}}), 413
 
-        logging.info(f"Executing sandboxed code for language: {lang_spec.canonical_id}")
+        logging.info(f"Executing sandboxed code for language: {lang_spec.canonical_id} (user: {user_id})")
         result = runner_client.execute(
             language=lang_spec.piston_language,
             code=code_str,
@@ -356,9 +379,18 @@ def execute_code_api():
             filename=lang_spec.default_filename,
         )
 
+        result["quota"] = {
+            "daily_limit": DAILY_QUOTA_DEFAULT,
+            "daily_remaining": remaining,
+            "reset_seconds": reset_seconds,
+        }
+
         resp = jsonify(result)
         resp.headers["X-AI-Simulated"] = "false"
         resp.headers["X-Execution-Engine"] = "piston-sandbox"
+        resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+        resp.headers["X-Quota-Remaining"] = str(remaining)
+        resp.headers["X-Quota-Reset"] = str(reset_seconds)
         resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Execution-Engine, X-Quota-Limit, X-Quota-Remaining, X-Quota-Reset"
         return resp
 
