@@ -44,7 +44,14 @@ const LANGUAGE_KEY_MAP = {
     julia: 'julia',
 };
 
+const EXECUTION_TIER_QUOTAS = {
+    free: 100,
+    pro: 500,
+    unlimited: 100000,
+};
+
 module.exports = {
     DEFAULT_LANGUAGE_COUNTS,
     LANGUAGE_KEY_MAP,
+    EXECUTION_TIER_QUOTAS,
 };

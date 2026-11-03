@@ -17,6 +17,23 @@ from google.genai import types
 from prompts import *
 from prompt_registry import registry
 from utils import *
+from runner_client import runner_client, RunnerUnavailableError, RunnerError
+from language_config import resolve_language, get_supported_languages
+from quota import quota_manager, DAILY_QUOTA_DEFAULT
+from harnesses import prepare_verilog_payload, prepare_sql_payload, prepare_mongodb_payload
+
+
+def apply_language_harness(spec, code: str) -> str:
+    """Preprocess code with specialized language harnesses for complex environments."""
+    if not spec or not getattr(spec, "requires_custom_harness", False):
+        return code
+    if spec.canonical_id == "verilog":
+        return prepare_verilog_payload(code)
+    elif spec.canonical_id == "sql":
+        return prepare_sql_payload(code)
+    elif spec.canonical_id == "mongodb":
+        return prepare_mongodb_payload(code)
+    return code
 
 import json
 import sys
@@ -260,6 +277,9 @@ def generate_code():
         return jsonify({"error": str(e)}), 500
 
 
+execution_engine = os.getenv("EXECUTION_ENGINE", "sandboxed").lower()
+
+
 @app.route("/get-output", methods=["POST"])
 @token_required
 def get_output_api():
@@ -281,22 +301,201 @@ def get_output_api():
             logging.warning("Missing code or language in /get-output request.")
             return jsonify({"error": "Missing code or language"}), 400
 
-        if language not in languages_prompts:
-            logging.warning(f"Unsupported language for get_output: {language}")
-            return jsonify({"error": f"Language '{language}' is not supported for execution"}), 400
-
         if len(code.encode("utf-8")) > MAX_SIZE:
             logging.warning("Code size exceeds maximum allowed limit.")
             return jsonify({"error": "Code size exceeds the 0.5 MB limit"}), 413
-        
-        code = f"\n\n{code}\n\n"
 
-        logging.info(f"Getting output for language: {language} (prompt v{prompt_version or 'active'})")
-        return get_output(code, language, prompt_version=prompt_version)
+        user_info = getattr(request, "user", {}) or {}
+        user_id = user_info.get("userId") or user_info.get("id") or "anonymous"
+
+        # Quota checks
+        if not quota_manager.check_burst_limit(user_id):
+            return jsonify({"error": "Too many requests. Please slow down."}), 429
+
+        allowed, remaining, reset_seconds = quota_manager.check_daily_quota(user_id)
+        if not allowed:
+            return jsonify({"error": f"Daily execution quota exceeded. Resets in {reset_seconds}s."}), 429
+
+        # If configured for real sandboxed execution, run in sandbox
+        if execution_engine != "simulated":
+            lang_spec = resolve_language(language)
+            if lang_spec:
+                try:
+                    logging.info(f"Routing /get-output to sandboxed runner for language: {lang_spec.canonical_id}")
+                    processed_code = apply_language_harness(lang_spec, code)
+                    runner_res = runner_client.execute(
+                        language=lang_spec.piston_language,
+                        code=processed_code,
+                        filename=lang_spec.default_filename,
+                    )
+                    run_info = runner_res.get("run", {})
+                    out_text = run_info.get("output") or (run_info.get("stdout", "") + run_info.get("stderr", ""))
+
+                    resp = Response(out_text, mimetype="text/plain")
+                    resp.headers["X-AI-Simulated"] = "false"
+                    resp.headers["X-Execution-Engine"] = "piston-sandbox"
+                    resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+                    resp.headers["X-Quota-Remaining"] = str(remaining)
+                    resp.headers["X-Quota-Reset"] = str(reset_seconds)
+                    resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Execution-Engine, X-Quota-Limit, X-Quota-Remaining, X-Quota-Reset"
+                    return resp
+                except RunnerUnavailableError as e:
+                    logging.warning(f"Sandboxed runner unavailable during /get-output, checking fallback: {e}")
+                    if os.getenv("FALLBACK_TO_SIMULATION", "true").lower() == "false":
+                        return jsonify({"error": "Sandbox runner unavailable"}), 503
+
+        # Fallback to AI-simulated output (or when EXECUTION_ENGINE=simulated)
+        if language not in languages_prompts:
+            logging.warning(f"Unsupported language for simulated get_output: {language}")
+            return jsonify({"error": f"Language '{language}' is not supported for execution"}), 400
+
+        formatted_code = f"\n\n{code}\n\n"
+        logging.info(f"Getting AI-simulated output for language: {language} (prompt v{prompt_version or 'active'})")
+        resp = get_output(formatted_code, language, prompt_version=prompt_version)
+        resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+        resp.headers["X-Quota-Remaining"] = str(remaining)
+        resp.headers["X-Quota-Reset"] = str(reset_seconds)
+        resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Simulation, X-Quota-Limit, X-Quota-Remaining, X-Quota-Reset"
+        return resp
 
     except Exception as e:
         logging.error(f"Error in /get-output endpoint: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/execute", methods=["POST"])
+@token_required
+def execute_code_api():
+    logging.info("Received request for /execute")
+
+    try:
+        token = request.headers.get("X-Recaptcha-Token")
+
+        if not is_human(token):
+            logging.warning("reCAPTCHA verification failed for /execute.")
+            abort(403, description="reCAPTCHA verification failed.")
+
+        data = request.get_json(silent=True) or {}
+        code = data.get("code")
+        language_raw = data.get("language")
+        stdin = data.get("stdin", "")
+        args = data.get("args") or data.get("command_line_arguments") or []
+        timeout_seconds = data.get("timeout_seconds")
+
+        if not code or not str(code).strip():
+            return jsonify({"error": {"code": "MISSING_CODE", "message": "Code is required and cannot be empty"}}), 400
+
+        if not language_raw:
+            return jsonify({"error": {"code": "MISSING_LANGUAGE", "message": "Language is required"}}), 400
+
+        user_info = getattr(request, "user", {}) or {}
+        user_id = user_info.get("userId") or user_info.get("id") or "anonymous"
+
+        # Check burst rate limit
+        if not quota_manager.check_burst_limit(user_id):
+            logging.warning(f"User {user_id} throttled by burst limit.")
+            burst_resp = jsonify({
+                "error": {
+                    "code": "RATE_LIMIT_EXCEEDED",
+                    "message": "Too many code execution requests in a short period. Please slow down.",
+                }
+            })
+            burst_resp.status_code = 429
+            burst_resp.headers["Retry-After"] = "5"
+            return burst_resp
+
+        allowed, remaining, reset_seconds = quota_manager.check_daily_quota(user_id)
+        if not allowed:
+            logging.warning(f"User {user_id} exceeded daily execution quota.")
+            err_resp = jsonify({
+                "error": {
+                    "code": "QUOTA_EXCEEDED",
+                    "message": f"Daily code execution quota reached. Resets in {reset_seconds}s.",
+                    "daily_limit": DAILY_QUOTA_DEFAULT,
+                    "daily_remaining": 0,
+                    "reset_seconds": reset_seconds,
+                }
+            })
+            err_resp.status_code = 429
+            err_resp.headers["Retry-After"] = str(reset_seconds)
+            err_resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+            err_resp.headers["X-Quota-Remaining"] = "0"
+            err_resp.headers["X-Quota-Reset"] = str(reset_seconds)
+            return err_resp
+
+        # Acquire concurrency semaphore
+        if not quota_manager.acquire_concurrency_lock(user_id):
+            logging.warning(f"User {user_id} exceeded max concurrent executions.")
+            concurrency_resp = jsonify({
+                "error": {
+                    "code": "CONCURRENCY_LIMIT_EXCEEDED",
+                    "message": "Another execution is currently running. Please wait for it to finish.",
+                }
+            })
+            concurrency_resp.status_code = 429
+            concurrency_resp.headers["Retry-After"] = "2"
+            return concurrency_resp
+
+        try:
+            lang_spec = resolve_language(language_raw)
+            if not lang_spec:
+                supported = sorted(list(get_supported_languages()))
+                logging.warning(f"Unsupported language requested for /execute: {language_raw}")
+                return jsonify({
+                    "error": {
+                        "code": "UNSUPPORTED_LANGUAGE",
+                        "message": f"Language '{language_raw}' is not supported.",
+                        "supported_languages": supported,
+                    }
+                }), 400
+
+            code_str = str(code)
+            if len(code_str.encode("utf-8")) > MAX_SIZE:
+                logging.warning("Code size exceeds maximum allowed limit.")
+                return jsonify({"error": {"code": "PAYLOAD_TOO_LARGE", "message": "Code size exceeds the 500 KB limit"}}), 413
+
+            if len(str(stdin).encode("utf-8")) > 65536:
+                return jsonify({"error": {"code": "STDIN_TOO_LARGE", "message": "Stdin exceeds 64 KB limit"}}), 413
+
+            logging.info(f"Executing sandboxed code for language: {lang_spec.canonical_id} (user: {user_id})")
+            processed_code = apply_language_harness(lang_spec, code_str)
+            result = runner_client.execute(
+                language=lang_spec.piston_language,
+                code=processed_code,
+                stdin=stdin,
+                args=args,
+                timeout_seconds=timeout_seconds,
+                filename=lang_spec.default_filename,
+            )
+
+            result["quota"] = {
+                "daily_limit": DAILY_QUOTA_DEFAULT,
+                "daily_remaining": remaining,
+                "reset_seconds": reset_seconds,
+            }
+
+            resp = jsonify(result)
+            resp.headers["X-AI-Simulated"] = "false"
+            resp.headers["X-Execution-Engine"] = "piston-sandbox"
+            resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+            resp.headers["X-Quota-Remaining"] = str(remaining)
+            resp.headers["X-Quota-Reset"] = str(reset_seconds)
+            resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Execution-Engine, X-Quota-Limit, X-Quota-Remaining, X-Quota-Reset"
+            return resp
+        finally:
+            quota_manager.release_concurrency_lock(user_id)
+
+    except RunnerUnavailableError as e:
+        logging.error(f"Sandbox runner is unavailable: {e}")
+        return jsonify({
+            "error": {
+                "code": "SANDBOX_UNAVAILABLE",
+                "message": "Sandboxed code execution service is temporarily unavailable. Please try again shortly.",
+            }
+        }), 503
+    except Exception as e:
+        logging.error(f"Unexpected error in /execute endpoint: {e}")
+        return jsonify({"error": {"code": "INTERNAL_SERVER_ERROR", "message": str(e)}}), 500
 
 
 @app.route("/refactor_code", methods=["POST"])

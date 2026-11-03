@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { usernameRegex, pwdRegex, reservedUsernames } = require('../utils/validation');
+const { EXECUTION_TIER_QUOTAS } = require('../config/constants');
 const { logUserAction } = require('../utils/useLogger');
 const { sendDelEmail } = require('../smtp/delEmail');
 const { sendPassChangeEmail } = require('../smtp/passChanged');
@@ -33,6 +34,8 @@ async function getAccountDetails(req, res) {
             generateCodeCount: user.generateCodeCount,
             refactorCodeCount: user.refactorCodeCount,
             runCodeCount: user.runCodeCount,
+            executionTier: user.executionTier || 'free',
+            executionQuota: user.customExecutionQuota || (EXECUTION_TIER_QUOTAS[user.executionTier] || 100),
             sharedLinks: user.sharedLinks,
         },
     });
