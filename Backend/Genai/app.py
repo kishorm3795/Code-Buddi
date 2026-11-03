@@ -263,6 +263,9 @@ def generate_code():
         return jsonify({"error": str(e)}), 500
 
 
+execution_engine = os.getenv("EXECUTION_ENGINE", "sandboxed").lower()
+
+
 @app.route("/get-output", methods=["POST"])
 @token_required
 def get_output_api():
@@ -284,18 +287,61 @@ def get_output_api():
             logging.warning("Missing code or language in /get-output request.")
             return jsonify({"error": "Missing code or language"}), 400
 
-        if language not in languages_prompts:
-            logging.warning(f"Unsupported language for get_output: {language}")
-            return jsonify({"error": f"Language '{language}' is not supported for execution"}), 400
-
         if len(code.encode("utf-8")) > MAX_SIZE:
             logging.warning("Code size exceeds maximum allowed limit.")
             return jsonify({"error": "Code size exceeds the 0.5 MB limit"}), 413
-        
-        code = f"\n\n{code}\n\n"
 
-        logging.info(f"Getting output for language: {language} (prompt v{prompt_version or 'active'})")
-        return get_output(code, language, prompt_version=prompt_version)
+        user_info = getattr(request, "user", {}) or {}
+        user_id = user_info.get("userId") or user_info.get("id") or "anonymous"
+
+        # Quota checks
+        if not quota_manager.check_burst_limit(user_id):
+            return jsonify({"error": "Too many requests. Please slow down."}), 429
+
+        allowed, remaining, reset_seconds = quota_manager.check_daily_quota(user_id)
+        if not allowed:
+            return jsonify({"error": f"Daily execution quota exceeded. Resets in {reset_seconds}s."}), 429
+
+        # If configured for real sandboxed execution, run in sandbox
+        if execution_engine != "simulated":
+            lang_spec = resolve_language(language)
+            if lang_spec:
+                try:
+                    logging.info(f"Routing /get-output to sandboxed runner for language: {lang_spec.canonical_id}")
+                    runner_res = runner_client.execute(
+                        language=lang_spec.piston_language,
+                        code=code,
+                        filename=lang_spec.default_filename,
+                    )
+                    run_info = runner_res.get("run", {})
+                    out_text = run_info.get("output") or (run_info.get("stdout", "") + run_info.get("stderr", ""))
+
+                    resp = Response(out_text, mimetype="text/plain")
+                    resp.headers["X-AI-Simulated"] = "false"
+                    resp.headers["X-Execution-Engine"] = "piston-sandbox"
+                    resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+                    resp.headers["X-Quota-Remaining"] = str(remaining)
+                    resp.headers["X-Quota-Reset"] = str(reset_seconds)
+                    resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Execution-Engine, X-Quota-Limit, X-Quota-Remaining, X-Quota-Reset"
+                    return resp
+                except RunnerUnavailableError as e:
+                    logging.warning(f"Sandboxed runner unavailable during /get-output, checking fallback: {e}")
+                    if os.getenv("FALLBACK_TO_SIMULATION", "true").lower() == "false":
+                        return jsonify({"error": "Sandbox runner unavailable"}), 503
+
+        # Fallback to AI-simulated output (or when EXECUTION_ENGINE=simulated)
+        if language not in languages_prompts:
+            logging.warning(f"Unsupported language for simulated get_output: {language}")
+            return jsonify({"error": f"Language '{language}' is not supported for execution"}), 400
+
+        formatted_code = f"\n\n{code}\n\n"
+        logging.info(f"Getting AI-simulated output for language: {language} (prompt v{prompt_version or 'active'})")
+        resp = get_output(formatted_code, language, prompt_version=prompt_version)
+        resp.headers["X-Quota-Limit"] = str(DAILY_QUOTA_DEFAULT)
+        resp.headers["X-Quota-Remaining"] = str(remaining)
+        resp.headers["X-Quota-Reset"] = str(reset_seconds)
+        resp.headers["Access-Control-Expose-Headers"] = "X-AI-Simulated, X-Simulation, X-Quota-Limit, X-Quota-Remaining, X-Quota-Reset"
+        return resp
 
     except Exception as e:
         logging.error(f"Error in /get-output endpoint: {e}")
