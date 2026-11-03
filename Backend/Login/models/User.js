@@ -69,6 +69,15 @@ const userSchema = new mongoose.Schema({
         of: Number,
         default: () => ({ ...DEFAULT_LANGUAGE_COUNTS }),
     },
+    executionTier: {
+        type: String,
+        enum: ['free', 'pro', 'unlimited'],
+        default: 'free',
+    },
+    customExecutionQuota: {
+        type: Number,
+        default: null,
+    },
     sharedLinks: {
         type: [{
             shareId: {
