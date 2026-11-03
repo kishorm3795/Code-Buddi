@@ -179,5 +179,91 @@ class QuotaManager:
         except Exception as e:
             logger.warning(f"Failed to refund quota for user {user_id}: {e}")
 
+    def check_burst_limit(self, user_id: str, limit: int = BURST_LIMIT_DEFAULT) -> bool:
+        """
+        Check if user exceeds burst rate limit (requests per 60-second window).
+        Returns True if allowed, False if throttled.
+        """
+        if not user_id:
+            return True
+
+        key = f"quota:burst:{user_id}"
+        client = self.client
+
+        try:
+            if isinstance(client, MockRedisQuota):
+                curr = client.incr(key)
+                if curr == 1:
+                    client.expire(key, 60)
+                return curr <= limit
+
+            pipe = client.pipeline()
+            pipe.incr(key)
+            pipe.ttl(key)
+            results = pipe.execute()
+            count = int(results[0])
+            ttl = int(results[1])
+
+            if ttl == -1:
+                client.expire(key, 60)
+            elif ttl == -2:
+                client.expire(key, 60)
+
+            return count <= limit
+        except Exception as e:
+            logger.warning(f"Error checking burst limit for user {user_id}: {e}")
+            return True
+
+    def acquire_concurrency_lock(self, user_id: str, max_concurrent: int = MAX_CONCURRENT_DEFAULT, ttl_seconds: int = 20) -> bool:
+        """
+        Acquire a slot in the user's concurrency semaphore.
+        Returns True if slot acquired, False if concurrent limit reached.
+        """
+        if not user_id:
+            return True
+
+        key = f"quota:active:{user_id}"
+        client = self.client
+
+        try:
+            if isinstance(client, MockRedisQuota):
+                curr = client.incr(key)
+                if curr == 1:
+                    client.expire(key, ttl_seconds)
+                if curr > max_concurrent:
+                    client.decr(key)
+                    return False
+                return True
+
+            pipe = client.pipeline()
+            pipe.incr(key)
+            pipe.ttl(key)
+            results = pipe.execute()
+            current_active = int(results[0])
+            ttl = int(results[1])
+
+            if ttl == -1 or ttl == -2:
+                client.expire(key, ttl_seconds)
+
+            if current_active > max_concurrent:
+                client.decr(key)
+                return False
+
+            return True
+        except Exception as e:
+            logger.warning(f"Error acquiring concurrency lock for user {user_id}: {e}")
+            return True
+
+    def release_concurrency_lock(self, user_id: str):
+        """Release the user's active concurrency slot."""
+        if not user_id:
+            return
+
+        key = f"quota:active:{user_id}"
+        try:
+            self.client.decr(key)
+        except Exception as e:
+            logger.warning(f"Error releasing concurrency lock for user {user_id}: {e}")
+
 
 quota_manager = QuotaManager()
