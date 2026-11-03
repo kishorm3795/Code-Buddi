@@ -10,7 +10,12 @@ def validate_env():
         return True, [], []
 
     required = ["GEMINI_API_KEY", "JWT_SECRET", "RECAPTCHA_SECRET_KEY", "ALLOWED_ORIGINS"]
-    optional = ["PORT", "GEMINI_MODEL", "GEMINI_MODEL_1"]
+    optional = ["PORT", "GEMINI_MODEL", "GEMINI_MODEL_1", "PISTON_URL", "EXECUTION_ENGINE", "REDIS_HOST"]
+
+    engine = os.getenv("EXECUTION_ENGINE", "sandboxed").lower()
+    if engine not in ("sandboxed", "simulated", "shadow"):
+        logging.warning(f"[Genai Service] Invalid EXECUTION_ENGINE '{engine}', defaulting to 'sandboxed'")
+        os.environ["EXECUTION_ENGINE"] = "sandboxed"
 
     missing_required = [key for key in required if not os.getenv(key) or not os.getenv(key).strip()]
     missing_optional = [key for key in optional if not os.getenv(key) or not os.getenv(key).strip()]
