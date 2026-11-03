@@ -138,7 +138,8 @@ def token_required(f):
             return jsonify({"message": "Token is missing!"}), 403
 
         try:
-            decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS512"])
+            secret = os.getenv("JWT_SECRET") or SECRET_KEY
+            decoded = jwt.decode(token, secret, algorithms=["HS512"])
             request.user = decoded
             logging.info("Token successfully decoded.")
 
