@@ -138,7 +138,18 @@ Code-Buddi is designed as a modular cloud-ready architecture:
 
 ## 5. Step 4: Backend Services Deployment on Render
 
-[Render](https://render.com) provides straightforward native Docker or runtime hosting for web services with automated SSL and health checking.
+[Render](https://render.com) provides native Docker and runtime hosting for web services with automated SSL and health checking.
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kishorm3795/Code-Buddi)
+
+### 1-Click Automated Deployment via Blueprint (Recommended)
+You can deploy all three services at once using the included [`render.yaml`](render.yaml):
+1. Click the **Deploy to Render** button above, or in Render Dashboard navigate to **New +** -> **Blueprint**.
+2. Select your `Code-Buddi` repository.
+3. Render will parse `render.yaml` and prompt you for secrets (`JWT_SECRET`, `MONGO_URI`, `REDIS_HOST`, `REDIS_PASSWORD`, `GEMINI_API_KEY`, `RECAPTCHA_SECRET_KEY`).
+4. Click **Apply** to deploy `codebuddi-login`, `codebuddi-genai`, and `codebuddi-tempfile` in parallel.
+
+---
 
 ### A. Shared Secrets to Generate
 
