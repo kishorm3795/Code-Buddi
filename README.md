@@ -2,6 +2,8 @@
 
 An online IDE with secure login functionality that allows users to run code, generate new code, refactor existing code, and share it with anyone.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/kishorm3795/Code-Buddi)
+
 ![Homepage](Images/Homepage.png)
 
 ![Lines of code](https://sloc.xyz/github/kishorm3795/Code-Buddi)

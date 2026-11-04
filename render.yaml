@@ -1,0 +1,101 @@
+# Render Blueprint Specification for Code-Buddi
+# Documentation: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: codebuddi-login
+    runtime: node
+    plan: free
+    rootDir: Backend/Login
+    buildCommand: npm install --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5003
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: OTP_EMAIL_SERVICE
+        value: gmail
+      - key: OTP_EMAIL_USER
+        sync: false
+      - key: OTP_EMAIL_PASS
+        sync: false
+
+  - type: web
+    name: codebuddi-genai
+    runtime: python
+    plan: free
+    rootDir: Backend/Genai
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -k gthread --threads 8 -t 120 -b 0.0.0.0:$PORT app:app
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 5001
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-pro
+      - key: GEMINI_MODEL_1
+        value: gemini-2.5-flash
+      - key: JWT_SECRET
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: EXECUTION_ENGINE
+        value: simulated
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        value: 6379
+      - key: REDIS_PASSWORD
+        sync: false
+      - key: REDIS_SSL
+        value: "true"
+      - key: EXECUTION_QUOTA_DAILY
+        value: 100
+
+  - type: web
+    name: codebuddi-tempfile
+    runtime: python
+    plan: free
+    rootDir: Backend/TempFile
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 2 -k gthread --threads 8 -t 120 -b 0.0.0.0:$PORT app:app
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 5002
+      - key: JWT_SECRET
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
+        sync: false
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        value: 6379
+      - key: REDIS_PASSWORD
+        sync: false
+      - key: REDIS_SSL
+        value: "true"
+      - key: TEMP_FILE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
