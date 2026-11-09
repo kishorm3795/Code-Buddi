@@ -5,6 +5,8 @@ import TabbedEditor from "./editor/TabbedEditor";
 import OutputPanel from "./editor/OutputPanel";
 import StdinDrawer from "./editor/StdinDrawer";
 import EditorToolbar from "./editor/EditorToolbar";
+import ProjectSearchModal from "./ProjectSearchModal";
+import { useProjectShortcuts } from "../hooks/useProjectShortcuts";
 import { useRunCode } from "../hooks/useRunCode";
 import { useGenerate } from "../hooks/useGenerate";
 import { useRefactor } from "../hooks/useRefactor";
@@ -37,6 +39,7 @@ const ProjectEditor = ({ isDarkMode, projectId }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(true);
   const [outputPanelTab, setOutputPanelTab] = useState('output'); // 'output' | 'terminal' | 'problems'
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const terminalRef = useRef(null);
   const cpyTimeoutRef = useRef(null);
@@ -203,6 +206,13 @@ const ProjectEditor = ({ isDarkMode, projectId }) => {
       markAllFilesSaved(currentProject.files);
     }
   }, [saveCurrentProject, currentProject, markAllFilesSaved]);
+
+  // Keyboard shortcuts integration
+  useProjectShortcuts({
+    onSearchFile: () => setIsSearchModalOpen(true),
+    onSaveFile: handleSaveAll,
+    onToggleSidebar: () => setIsSidebarOpen((prev) => !prev),
+  });
 
   // Download project as zip
   const handleDownloadProject = useCallback(() => {
@@ -461,6 +471,14 @@ const ProjectEditor = ({ isDarkMode, projectId }) => {
 
       {/* Toolbar */}
       <EditorToolbar buttons={buttonsConfig} />
+
+      {/* Quick Search Modal */}
+      <ProjectSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        files={currentProject?.files || []}
+        onSelectFile={(file) => setActiveFile(file.id)}
+      />
 
       {/* Mobile Sidebar Toggle */}
       <button
