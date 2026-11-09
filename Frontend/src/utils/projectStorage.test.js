@@ -12,6 +12,10 @@ import {
   saveProject,
   getProject,
   deleteProject,
+  exportProject,
+  exportProjectAsJsonString,
+  validateProjectSchema,
+  importProjectFromJsonString,
 } from './projectStorage.js';
 
 describe('projectStorage - Core CRUD & Templates', () => {
@@ -123,4 +127,52 @@ describe('projectStorage - Core CRUD & Templates', () => {
       expect(getProject(project.id)).toBeNull();
     });
   });
+
+  describe('Export & Import Serialization', () => {
+    it('exports project as object and formatted JSON string', () => {
+      const project = createProjectFromTemplate('blank', 'Exportable');
+      saveProject(project);
+
+      const exportedObj = exportProject(project.id);
+      expect(exportedObj).toBeDefined();
+      expect(exportedObj.name).toBe('Exportable');
+      expect(exportedObj.exportedAt).toBeDefined();
+      expect(exportedObj.version).toBe('1.0');
+
+      const jsonStr = exportProjectAsJsonString(project.id);
+      expect(typeof jsonStr).toBe('string');
+      expect(JSON.parse(jsonStr).name).toBe('Exportable');
+    });
+
+    it('returns null when exporting non-existent project', () => {
+      expect(exportProject('missing-id')).toBeNull();
+      expect(exportProjectAsJsonString('missing-id')).toBeNull();
+    });
+
+    it('validates schema correctly for imported objects', () => {
+      expect(validateProjectSchema(null).valid).toBe(false);
+      expect(validateProjectSchema({}).valid).toBe(false);
+      expect(validateProjectSchema({ name: 'Valid', files: {} }).valid).toBe(true);
+      expect(validateProjectSchema({ name: 123 }).valid).toBe(false);
+    });
+
+    it('handles import from JSON string with new project id generation', () => {
+      const original = createProjectFromTemplate('blank', 'Source');
+      const json = JSON.stringify(original);
+
+      const res = importProjectFromJsonString(json, { newName: 'Cloned' });
+      expect(res.success).toBe(true);
+      expect(res.project).toBeDefined();
+      expect(res.project.name).toBe('Cloned');
+      expect(res.project.id).not.toBe(original.id);
+    });
+
+    it('returns error on corrupted JSON input during import', () => {
+      const res = importProjectFromJsonString('{ invalid json ...');
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('Invalid JSON format');
+      expect(res.project).toBeNull();
+    });
+  });
 });
+
