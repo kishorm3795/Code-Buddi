@@ -87,6 +87,13 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               {isLoggedIn ? (
                 <>
                   <Link
+                    to={`${baseUrl}/projects`}
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-400 hover:hacker-glow-text transition-all duration-300"
+                    aria-label="Go to Projects"
+                  >
+                    Projects
+                  </Link>
+                  <Link
                     to={`${baseUrl}/account/${username}`}
                     className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-400 hover:hacker-glow-text transition-all duration-300"
                     title={username.trim()}
@@ -104,6 +111,13 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 </>
               ) : (
                 <>
+                  <Link
+                    to={`${baseUrl}/projects`}
+                    className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-400 hover:hacker-glow-text transition-all duration-300"
+                    aria-label="Go to Projects"
+                  >
+                    Projects
+                  </Link>
                   <Link
                     to={`${baseUrl}/login`}
                     className="text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-green-400 hover:hacker-glow-text transition-all duration-300"
@@ -159,6 +173,14 @@ const Header = ({ isDarkMode, toggleTheme }) => {
               {isLoggedIn ? (
                 <>
                   <Link
+                    to={`${baseUrl}/projects`}
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"
+                    aria-label="Go to Projects"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    Projects
+                  </Link>
+                  <Link
                     to={`${baseUrl}/account/${username}`}
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"
                     title={username.trim()}
@@ -181,6 +203,14 @@ const Header = ({ isDarkMode, toggleTheme }) => {
                 </>
               ) : (
                 <>
+                  <Link
+                    to={`${baseUrl}/projects`}
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"
+                    aria-label="Go to Projects"
+                    onClick={() => setIsDropdownOpen(false)}
+                  >
+                    Projects
+                  </Link>
                   <Link
                     to="/login"
                     className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400"

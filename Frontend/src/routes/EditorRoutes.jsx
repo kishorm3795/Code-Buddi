@@ -35,6 +35,8 @@ const NavigationLinks = lazy(() => import("../components/NavigationLinks"));
 const Editor = lazy(() => import("../components/Editor"));
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
 const ShareEditor = lazy(() => import("../components/ShareEditor"));
+const ProjectDashboard = lazy(() => import("../components/ProjectDashboard"));
+const ProjectEditor = lazy(() => import("../components/ProjectEditor"));
 
 const RouteLoadingFallback = () => (
   <div className="flex items-center justify-center min-h-[60vh] text-gray-500 dark:text-gray-400">
@@ -164,6 +166,16 @@ const EditorRoutes = ({ isDarkMode }) => (
         />
 
         <Route path="/" element={<NavigationLinks />} />
+
+        {/* Project Routes */}
+        <Route
+          path="/projects"
+          element={<ProtectedRoute element={<ProjectDashboard />} />}
+        />
+        <Route
+          path="/project/:projectId"
+          element={<ProtectedRoute element={<ProjectEditor isDarkMode={isDarkMode} />} />}
+        />
 
         <Route
           path="/htmlcssjs"

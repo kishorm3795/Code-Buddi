@@ -343,3 +343,107 @@ npm run preview
  
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.  
 Originally based on [gladw-in/online-ide](https://github.com/gladw-in/online-ide).
+
+---
+
+## 🚀 Feature Roadmap
+
+### 🎯 High Impact - Core IDE Features
+
+| Feature | Description | Effort |
+|---------|-------------|--------|
+| **Multi-file Projects** | File tree sidebar, tabs, project save/load (localStorage or backend) | Medium |
+| **Real-time Collaboration** | Operational Transform (OT) or CRDT via WebSocket (Yjs/Automerge) | High |
+| **Git Integration** | Clone/push/pull, diff view, commit UI (via isomorphic-git or backend) | High |
+| **Built-in Terminal** | xterm.js + WebSocket to backend (PTY) for shell access | High |
+| **Debug Adapter Protocol** | Debug panel with breakpoints, variables, call stack | High |
+
+---
+
+### 🤖 AI Enhancements (leverages GenAI service)
+
+| Feature | Description |
+|---------|-------------|
+| **Code Review Agent** | AI reviews PRs/diffs for bugs, style, security |
+| **Explain Code** | "Explain this selection" with step-by-step breakdown |
+| **Test Generation** | Auto-generate unit tests for selected function |
+| **Refactor Suggestions** | "Modernize this", "Add types", "Optimize performance" |
+| **Documentation Generator** | Auto-write JSDoc/docstrings/README |
+| **Error Explainer** | Paste stack trace → plain English fix |
+
+---
+
+### 📦 Project & Workflow
+
+| Feature | Description |
+|---------|-------------|
+| **Project Templates** | React, Node, Python, Go starter kits with one-click setup |
+| **Dependency Manager** | package.json/requirements.txt UI + auto-install |
+| **Run Configurations** | Save/customize run commands per project |
+| **Environment Variables** | .env editor with secret masking |
+| **Deploy Targets** | One-click to Vercel, Netlify, Render, Railway, Fly.io |
+
+---
+
+### 🎨 Editor Experience
+
+| Feature | Description |
+|---------|-------------|
+| **More Themes** | Dracula, Nord, GitHub, Catppuccin, Solarized (Monaco themes) |
+| **Vim/Emacs Keybindings** | Toggleable keymaps (Monaco has built-in) |
+| **Command Palette** | Ctrl+Shift+P for all actions (like VS Code) |
+| **Minimap & Breadcrumbs** | Code navigation aids |
+| **Split Editor** | Side-by-side or grid layout |
+| **Zen Mode** | Distraction-free fullscreen |
+
+---
+
+### 🌐 Community & Sharing
+
+| Feature | Description |
+|---------|-------------|
+| **Public Snippets Gallery** | Browse/fork/rate shared code (extends TempFile) |
+| **Embeddable Snippets** | `<script src="codebuddi.io/embed/abc123"></script>` |
+| **Templates Marketplace** | User-submitted starter projects |
+| **Classroom Mode** | Teacher creates assignment → students fork → auto-graded |
+
+---
+
+### 🔧 Infrastructure & DevOps
+
+| Feature | Description |
+|---------|-------------|
+| **WebAssembly Runtimes** | Run Python/Rust/Go/WASM in-browser (Pyodide, wasm) |
+| **Language Server Protocol** | Full LSP for each language (hover, goto-def, refactor) |
+| **CI/CD Pipeline Editor** | Visual .github/workflows or .gitlab-ci.yml builder |
+| **Secrets Manager** | Encrypted env vars per project (Vault/AWS Secrets Manager) |
+
+---
+
+### 📱 Platform Expansion
+
+| Feature | Description |
+|---------|-------------|
+| **Mobile-Optimized Editor** | Touch-friendly, virtual keyboard toolbar |
+| **VS Code Extension** | "Open in CodeBuddi" / sync settings |
+| **Desktop App** | Tauri/Electron wrapper for native feel |
+| **API & Webhooks** | Programmatic project creation, run triggers |
+
+---
+
+### 🎯 Recommended Next Steps (Priority Order)
+
+1. **Multi-file projects** — Foundation for everything else
+2. **Project templates** — Immediate UX win for new users
+3. **AI code review/explain** — Leverages existing GenAI investment
+4. **Git integration** — Differentiates from playground tools
+5. **WebAssembly runtimes** — Run code in-browser (no backend needed for many languages)
+
+---
+
+### What aligns with your vision?
+
+- **If education-focused** → Classroom mode + templates
+- **If pro-developer focused** → Git + Terminal + LSP + DAP
+- **If AI-first** → Code review agent + test gen + refactor suggestions
+- **If community/growth** → Snippets gallery + embeds + marketplace
