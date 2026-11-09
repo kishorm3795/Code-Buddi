@@ -669,6 +669,47 @@ export const duplicateProject = (projectId, newName) => {
 };
 
 /**
+ * Export project as formatted JSON string (for file download/sharing)
+ */
+export const exportProjectAsJsonString = (projectId) => {
+  const data = exportProject(projectId);
+  if (!data) return null;
+  return JSON.stringify(data, null, 2);
+};
+
+/**
+ * Validate imported project schema structure
+ */
+export const validateProjectSchema = (data) => {
+  if (!data || typeof data !== 'object') {
+    return { valid: false, error: 'Project data must be a valid JSON object' };
+  }
+  if (!data.name || typeof data.name !== 'string') {
+    return { valid: false, error: 'Project must contain a valid string name' };
+  }
+  if (!data.files || typeof data.files !== 'object') {
+    return { valid: false, error: 'Project must contain files collection' };
+  }
+  return { valid: true, error: null };
+};
+
+/**
+ * Import project from raw JSON string with validation
+ */
+export const importProjectFromJsonString = (jsonString, options = {}) => {
+  try {
+    const parsed = JSON.parse(jsonString);
+    const validation = validateProjectSchema(parsed);
+    if (!validation.valid) {
+      return { success: false, error: validation.error, project: null };
+    }
+    return importProject(parsed, options.newName);
+  } catch (err) {
+    return { success: false, error: `Invalid JSON format: ${err.message}`, project: null };
+  }
+};
+
+/**
  * Export project as JSON (for download)
  */
 export const exportProject = (projectId) => {
