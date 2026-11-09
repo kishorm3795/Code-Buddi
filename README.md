@@ -352,7 +352,7 @@ Originally based on [gladw-in/online-ide](https://github.com/gladw-in/online-ide
 
 | Feature | Description | Effort |
 |---------|-------------|--------|
-| **Multi-file Projects** | File tree sidebar, tabs, project save/load (localStorage or backend) | Medium |
+| **Multi-file Projects** | File tree sidebar, tabs, project save/load, keyboard shortcuts ([Full Guide](docs/MULTI_FILE_PROJECTS.md)) | Completed |
 | **Real-time Collaboration** | Operational Transform (OT) or CRDT via WebSocket (Yjs/Automerge) | High |
 | **Git Integration** | Clone/push/pull, diff view, commit UI (via isomorphic-git or backend) | High |
 | **Built-in Terminal** | xterm.js + WebSocket to backend (PTY) for shell access | High |

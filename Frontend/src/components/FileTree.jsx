@@ -208,6 +208,7 @@ const FileTree = () => {
     setActiveFile,
     updateFileContent,
     markFileSaved,
+    downloadProject,
   } = useProject();
 
   const [expandedFolders, setExpandedFolders] = useState(new Set());
@@ -415,8 +416,9 @@ const FileTree = () => {
           <FaDownload className="text-xs" />
           <button
             onClick={() => {
-              const { downloadProject } = require('../hooks/useProject');
-              // We'll add this to context
+              if (currentProject?.id) {
+                downloadProject(currentProject.id);
+              }
             }}
             className="hover:text-green-400 underline"
           >
