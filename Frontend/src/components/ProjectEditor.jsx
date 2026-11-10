@@ -17,6 +17,19 @@ import { FaPlay, FaSpinner, FaTrashAlt, FaCopy, FaDownload, FaMagic, FaWrench, F
 import { GiBrain } from "react-icons/gi";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 
+// Helper functions
+function getActiveFile(nodes) {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (node.type === 'file') return node;
+    if (node.type === 'folder' && node.children && node.children.length > 0) {
+      const found = getActiveFile(node.children);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 const ProjectEditor = ({ isDarkMode, projectId }) => {
   const {
     currentProject,
@@ -45,18 +58,6 @@ const ProjectEditor = ({ isDarkMode, projectId }) => {
   const cpyTimeoutRef = useRef(null);
   const [cpyBtnState, setCpyBtnState] = useState("Copy");
 
-  // Helper functions
-  const getActiveFile = useCallback((nodes) => {
-    if (!nodes) return null;
-    for (const node of nodes) {
-      if (node.type === 'file') return node;
-      if (node.type === 'folder' && node.children.length > 0) {
-        const found = getActiveFile(node.children);
-        if (found) return found;
-      }
-    }
-    return null;
-  }, []);
 
   const markAllFilesSaved = useCallback((nodes) => {
     if (!nodes) return;
@@ -145,7 +146,7 @@ const ProjectEditor = ({ isDarkMode, projectId }) => {
     }).finally(() => {
       setIsEditorReadOnly(false);
     });
-  }, [currentProject, stdin, executeRun, getActiveFile]);
+  }, [currentProject, stdin, executeRun]);
 
   // Handle generate for active file
   const handleGenerate = useCallback(() => {
@@ -160,7 +161,7 @@ const ProjectEditor = ({ isDarkMode, projectId }) => {
     }).finally(() => {
       setIsEditorReadOnly(false);
     });
-  }, [currentProject, executeGenerate, updateFileContent, getActiveFile]);
+  }, [currentProject, executeGenerate, updateFileContent]);
 
   // Handle refactor for active file
   const handleRefactor = useCallback(() => {
@@ -177,7 +178,7 @@ const ProjectEditor = ({ isDarkMode, projectId }) => {
     }).finally(() => {
       setIsEditorReadOnly(false);
     });
-  }, [currentProject, output, executeRefactor, updateFileContent, getActiveFile]);
+  }, [currentProject, output, executeRefactor, updateFileContent]);
 
   // Handle share project
   const handleShare = useCallback(() => {
