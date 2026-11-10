@@ -272,7 +272,7 @@ const EmptyState = ({ onCreateClick }) => (
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7h18M3 12h18M3 17h18M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" />
       </svg>
     </div>
-    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Projects Yet</h2>
+    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No projects found</h2>
     <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
       Create your first project to start coding with multiple files, folders, and full IDE features.
     </p>

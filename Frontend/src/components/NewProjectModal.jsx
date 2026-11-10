@@ -124,6 +124,7 @@ const NewProjectModal = ({ onClose, onCreate }) => {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Project</h2>
             <button
               onClick={onClose}
+              aria-label="Close modal"
               className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <FaTimes className="w-5 h-5" />
@@ -219,7 +220,7 @@ const NewProjectModal = ({ onClose, onCreate }) => {
                 setProjectName(e.target.value);
                 if (nameError) setNameError("");
               }}
-              placeholder="my-awesome-project"
+              placeholder="e.g., my-awesome-project"
               className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 nameError ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}

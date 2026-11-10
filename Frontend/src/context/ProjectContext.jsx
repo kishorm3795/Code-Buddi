@@ -91,20 +91,27 @@ export const ProjectProvider = ({ children }) => {
 
   // Update current project (merge changes)
   const updateProject = useCallback((updates) => {
-    if (!currentProject) return;
+    if (!currentProjectId) return;
 
-    const updated = { ...currentProject, ...updates, updatedAt: nowISO() };
+    let updated = null;
     setProjects((prev) =>
-      prev.map((p) => (p.id === currentProject.id ? updated : p))
+      prev.map((p) => {
+        if (p.id === currentProjectId) {
+          updated = { ...p, ...updates, updatedAt: nowISO() };
+          return updated;
+        }
+        return p;
+      })
     );
-    autoSave(updated);
-  }, [currentProject, autoSave]);
+    if (updated) {
+      autoSave(updated);
+    }
+  }, [currentProjectId, autoSave]);
 
   // Set active file
   const setActiveFile = useCallback((fileId) => {
-    if (!currentProject) return;
     updateProject({ activeFileId: fileId });
-  }, [currentProject, updateProject]);
+  }, [updateProject]);
 
   // Update project settings
   const updateSettings = useCallback((settings) => {
@@ -129,10 +136,9 @@ export const ProjectProvider = ({ children }) => {
     }
 
     const updatedFiles = addNodeToTree(currentProject.files, parentId, newFile);
-    updateProject({ files: updatedFiles });
-    setActiveFile(newFile.id);
+    updateProject({ files: updatedFiles, activeFileId: newFile.id });
     return newFile;
-  }, [currentProject, updateProject, setActiveFile]);
+  }, [currentProject, updateProject]);
 
   // Create a new folder
   const createFolder = useCallback((name, parentId = null) => {

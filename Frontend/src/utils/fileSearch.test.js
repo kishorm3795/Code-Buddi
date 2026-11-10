@@ -64,7 +64,7 @@ describe('fileSearch utility', () => {
 
     it('recursively flattens nested folder hierarchy into flat list of files', () => {
       const files = flattenFileTree(mockTree);
-      expect(files.length).toBe(5);
+      expect(files.length).toBe(6);
       const names = files.map((f) => f.name);
       expect(names).toEqual(['index.html', 'App.jsx', 'App.css', 'Button.jsx', 'index.js', 'package.json'].filter(n => names.includes(n)));
     });
