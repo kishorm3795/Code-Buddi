@@ -18,7 +18,7 @@ describe('NewProjectModal Component', () => {
     render(<NewProjectModal onClose={vi.fn()} onCreate={onCreate} />);
 
     // Select Python template
-    fireEvent.click(screen.getByText('Python project with main.py'));
+    fireEvent.click(screen.getByText(/Python project with main\.py/i));
 
     // Step 2 header
     expect(screen.getByText('Configure Project')).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('NewProjectModal Component', () => {
     render(<NewProjectModal onClose={vi.fn()} onCreate={onCreate} />);
 
     // Select Python template
-    fireEvent.click(screen.getByText('Python project with main.py'));
+    fireEvent.click(screen.getByText(/Python project with main\.py/i));
 
     // Fill valid name
     const input = screen.getByPlaceholderText('e.g., my-awesome-project');
