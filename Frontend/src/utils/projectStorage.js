@@ -148,6 +148,9 @@ export const findParentById = (nodes, id, parent = null) => {
  * Add a node to the tree under a parent
  */
 export const addNodeToTree = (nodes, parentId, newNode) => {
+  if (!parentId) {
+    return [...nodes, newNode];
+  }
   return nodes.map((node) => {
     if (node.id === parentId && node.type === 'folder') {
       const updatedChildren = [...node.children, newNode];

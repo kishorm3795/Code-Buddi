@@ -70,7 +70,7 @@ describe('ProjectDashboard Component', () => {
     const newBtn = screen.getAllByRole('button', { name: /new project/i })[0];
     fireEvent.click(newBtn);
 
-    expect(screen.getByText('Create New Project')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Create New Project' })).toBeInTheDocument();
   });
 
   it('shows empty state when no projects exist', () => {

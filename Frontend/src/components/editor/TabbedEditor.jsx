@@ -45,7 +45,15 @@ const TabBar = ({ tabs, activeTabId, onTabClick, onTabClose, onTabDoubleClick })
     const calculateOverflow = () => {
       if (!tabsContainerRef.current) return;
 
-      const containerWidth = tabsContainerRef.current.offsetWidth - 120; // Reserve space for buttons
+      const rawWidth = tabsContainerRef.current.offsetWidth;
+      // In test environments (JSDOM) or unmeasured containers, do not hide tabs into overflow
+      if (rawWidth <= 0) {
+        setOverflowTabs([]);
+        setShowOverflow(false);
+        return;
+      }
+
+      const containerWidth = rawWidth - 120; // Reserve space for buttons
       let totalWidth = 0;
       const visible = [];
       const overflow = [];

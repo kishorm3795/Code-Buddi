@@ -220,7 +220,7 @@ const NewProjectModal = ({ onClose, onCreate }) => {
                 setProjectName(e.target.value);
                 if (nameError) setNameError("");
               }}
-              placeholder="my-awesome-project"
+              placeholder="e.g., my-awesome-project"
               className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 ${
                 nameError ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
