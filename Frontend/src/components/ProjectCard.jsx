@@ -83,7 +83,7 @@ const ProjectCard = ({ project, onOpen, onDuplicate, onDownload, onDelete }) => 
             <button
               onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
               className="p-1.5 text-gray-400 hover:text-green-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-              aria-label="More options"
+              aria-label="Project options"
             >
               <FaChevronDown className="w-5 h-5" />
             </button>
@@ -93,26 +93,26 @@ const ProjectCard = ({ project, onOpen, onDuplicate, onDownload, onDelete }) => 
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 top-full mt-1 z-20 hacker-glass hacker-border rounded-lg shadow-xl py-1 min-w-[160px]">
                   <button
-                    onClick={() => { onOpen(); setShowMenu(false); }}
+                    onClick={() => { onOpen(project.id); setShowMenu(false); }}
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-green-500/20 hover:text-green-400 flex items-center gap-2"
                   >
                     <FaFolderOpen className="w-4 h-4" /> Open Project
                   </button>
                   <button
-                    onClick={() => { onDuplicate(); setShowMenu(false); }}
+                    onClick={() => { onDuplicate(project.id); setShowMenu(false); }}
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-green-500/20 hover:text-green-400 flex items-center gap-2"
                   >
                     <FaCopy className="w-4 h-4" /> Duplicate
                   </button>
                   <button
-                    onClick={() => { onDownload(); setShowMenu(false); }}
+                    onClick={() => { onDownload(project.id); setShowMenu(false); }}
                     className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-green-500/20 hover:text-green-400 flex items-center gap-2"
                   >
                     <FaDownload className="w-4 h-4" /> Download
                   </button>
                   <div className="border-t border-gray-700 my-1" />
                   <button
-                    onClick={() => { onDelete(); setShowMenu(false); }}
+                    onClick={() => { onDelete(project.id); setShowMenu(false); }}
                     className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/20 hover:text-red-300 flex items-center gap-2"
                   >
                     <FaTrash className="w-4 h-4" /> Delete
@@ -138,21 +138,21 @@ const ProjectCard = ({ project, onOpen, onDuplicate, onDownload, onDelete }) => 
         {/* Quick Actions */}
         <div className="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
           <button
-            onClick={onOpen}
+            onClick={() => onOpen(project.id)}
             className="flex-1 px-3 py-2 bg-green-500 text-white text-sm font-mono rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
           >
             <FaFolderOpen className="w-4 h-4" />
-            Open
+            Open Project
           </button>
           <button
-            onClick={onDuplicate}
+            onClick={() => onDuplicate(project.id)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Duplicate"
           >
             <FaCopy className="w-4 h-4" />
           </button>
           <button
-            onClick={onDownload}
+            onClick={() => onDownload(project.id)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title="Download"
           >

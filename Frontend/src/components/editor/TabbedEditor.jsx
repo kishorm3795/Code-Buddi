@@ -224,7 +224,6 @@ const TabbedEditor = ({
   const [activeTabId, setActiveTabId] = useState(null);
   const editorRef = useRef(null);
   const modelRefs = useRef({}); // fileId -> monaco model
-  const [editorMounted, setEditorMounted] = useState(false);
 
   const openFiles = getOpenFiles();
 
@@ -252,7 +251,6 @@ const TabbedEditor = ({
 
   const handleEditorMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
-    setEditorMounted(true);
 
     // Create models for all open files
     openFiles.forEach((file) => {
@@ -386,17 +384,6 @@ const TabbedEditor = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeTabId, openFiles, handleSave, handleTabClose, handleNewFile, handleTabClick, handleRun]);
-
-  if (!editorMounted) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50/50 dark:bg-gray-900/40 border border-gray-200 dark:border-green-500/10 rounded-xl hacker-glass">
-        <div className="text-center text-gray-500 dark:text-gray-400">
-          <div className="animate-spin text-3xl mb-2">⚡</div>
-          <p>Loading editor...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-green-500/10 overflow-hidden hacker-glass">

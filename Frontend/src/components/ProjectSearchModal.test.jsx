@@ -44,7 +44,7 @@ describe('ProjectSearchModal', () => {
       <ProjectSearchModal isOpen={true} onClose={onClose} files={mockFiles} onSelectFile={onSelectFile} />
     );
 
-    const fileItem = screen.getByText('main.py');
+    const fileItem = screen.getAllByText('main.py')[0];
     fireEvent.click(fileItem);
 
     expect(onSelectFile).toHaveBeenCalledWith(expect.objectContaining({ name: 'main.py' }));

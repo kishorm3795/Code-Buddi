@@ -256,6 +256,67 @@ export const getAllFiles = (nodes) => {
   return flattenTree(nodes).filter((n) => n.type === 'file');
 };
 
+export const PROJECT_TEMPLATES = [
+  {
+    id: "blank",
+    name: "Blank",
+    description: "Start with a single empty file",
+    icon: "📄",
+    languages: ["javascript", "python", "typescript", "html", "css", "go", "rust", "java", "csharp", "cpp", "c"],
+    defaultLanguage: "javascript",
+  },
+  {
+    id: "react",
+    name: "React + Vite",
+    description: "Modern React app with Vite, JSX, and hot reload",
+    icon: "⚛️",
+    languages: ["javascript", "typescript"],
+    defaultLanguage: "javascript",
+  },
+  {
+    id: "python",
+    name: "Python",
+    description: "Python project with main.py and requirements.txt",
+    icon: "🐍",
+    languages: ["python"],
+    defaultLanguage: "python",
+  },
+  {
+    id: "node",
+    name: "Node.js",
+    description: "Node.js project with package.json and ES modules",
+    icon: "🟢",
+    languages: ["javascript", "typescript"],
+    defaultLanguage: "javascript",
+  },
+  {
+    id: "go",
+    name: "Go",
+    description: "Go module with main.go and go.mod",
+    icon: "🐹",
+    languages: ["go"],
+    defaultLanguage: "go",
+  },
+  {
+    id: "rust",
+    name: "Rust",
+    description: "Rust project with Cargo.toml and src/main.rs",
+    icon: "🦀",
+    languages: ["rust"],
+    defaultLanguage: "rust",
+  },
+];
+
+export const getTemplates = () => PROJECT_TEMPLATES;
+
+export const getTemplate = (id) => PROJECT_TEMPLATES.find((t) => t.id === id);
+
+export const createProjectFromTemplate = (templateId, name) => {
+  const t = getTemplate(templateId);
+  const lang = t?.defaultLanguage || 'javascript';
+  return createProject(name, lang, templateId);
+};
+
 /**
  * Create a new project with default structure
  */

@@ -53,7 +53,7 @@ describe('FileTree Component', () => {
   it('renders explorer header with project name and file count', () => {
     render(<FileTree />);
 
-    expect(screen.getByText('Explorer')).toBeInTheDocument();
+    expect(screen.getByText('My Workspace')).toBeInTheDocument();
     expect(screen.getByText('main.py')).toBeInTheDocument();
     expect(screen.getByText('src')).toBeInTheDocument();
   });
@@ -68,7 +68,7 @@ describe('FileTree Component', () => {
   it('triggers createFile when new file icon is clicked', () => {
     render(<FileTree />);
 
-    const newFileBtn = screen.getByTitle('New File');
+    const newFileBtn = screen.getAllByTitle('New File')[0];
     fireEvent.click(newFileBtn);
 
     expect(mockContext.createFile).toHaveBeenCalled();
@@ -77,7 +77,7 @@ describe('FileTree Component', () => {
   it('triggers createFolder when new folder icon is clicked', () => {
     render(<FileTree />);
 
-    const newFolderBtn = screen.getByTitle('New Folder');
+    const newFolderBtn = screen.getAllByTitle('New Folder')[0];
     fireEvent.click(newFolderBtn);
 
     expect(mockContext.createFolder).toHaveBeenCalled();

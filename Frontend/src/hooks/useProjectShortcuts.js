@@ -20,8 +20,7 @@ export const useProjectShortcuts = ({
     if (!enabled) return;
 
     const handleKeyDown = (e) => {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const isModifier = isMac ? e.metaKey : e.ctrlKey;
+      const isModifier = e.metaKey || e.ctrlKey;
 
       // Cmd/Ctrl + P -> Quick Search
       if (isModifier && e.key.toLowerCase() === 'p') {
