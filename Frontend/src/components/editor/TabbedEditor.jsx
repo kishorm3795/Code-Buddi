@@ -3,6 +3,38 @@ import { FaTimes, FaFileCode, FaSave, FaDownload, FaPlay } from "react-icons/fa"
 import LazyMonacoEditor from "./LazyMonacoEditor";
 import { useProject } from "../../hooks/useProject";
 
+const getFileIcon = (language) => {
+  const icons = {
+    python: '🐍',
+    javascript: '🟨',
+    typescript: '🔷',
+    java: '☕',
+    csharp: '🔷',
+    go: '🐹',
+    rust: '🦀',
+    ruby: '💎',
+    php: '🐘',
+    swift: '🐦',
+    kotlin: '🟣',
+    dart: '🎯',
+    scala: '🔴',
+    julia: '🟪',
+    c: '🔵',
+    cpp: '🔵',
+    html: '🌐',
+    css: '🎨',
+    json: '📋',
+    markdown: '📝',
+    sql: '🗄️',
+    shell: '🐚',
+    yaml: '📄',
+    toml: '📄',
+    dockerfile: '🐳',
+    plaintext: '📄',
+  };
+  return icons[language] || '📄';
+};
+
 const TabBar = ({ tabs, activeTabId, onTabClick, onTabClose, onTabDoubleClick }) => {
   const tabsContainerRef = useRef(null);
   const [showOverflow, setShowOverflow] = useState(false);
@@ -37,38 +69,6 @@ const TabBar = ({ tabs, activeTabId, onTabClick, onTabClose, onTabDoubleClick })
     return () => window.removeEventListener('resize', calculateOverflow);
   }, [tabs]);
 
-  const getFileIcon = (language) => {
-    const icons = {
-      python: '🐍',
-      javascript: '🟨',
-      typescript: '🔷',
-      java: '☕',
-      csharp: '🔷',
-      go: '🐹',
-      rust: '🦀',
-      ruby: '💎',
-      php: '🐘',
-      swift: '🐦',
-      kotlin: '🟣',
-      dart: '🎯',
-      scala: '🔴',
-      julia: '🟪',
-      c: '🔵',
-      cpp: '🔵',
-      html: '🌐',
-      css: '🎨',
-      json: '📋',
-      markdown: '📝',
-      sql: '🗄️',
-      shell: '🐚',
-      yaml: '📄',
-      toml: '📄',
-      dockerfile: '🐳',
-      plaintext: '📄',
-    };
-    return icons[language] || '📄';
-  };
-
   const visibleTabs = showOverflow ? tabs.slice(0, -overflowTabs.length) : tabs;
 
   return (
@@ -86,7 +86,7 @@ const TabBar = ({ tabs, activeTabId, onTabClick, onTabClose, onTabDoubleClick })
           />
         ))}
         {showOverflow && (
-          <OverflowMenu tabs={overflowTabs} onTabClick={onTabClick} onTabClose={onTabClose} />
+          <OverflowMenu tabs={overflowTabs} activeTabId={activeTabId} onTabClick={onTabClick} onTabClose={onTabClose} />
         )}
       </div>
       <div className="flex items-center gap-1 ml-2 border-l border-gray-200 dark:border-green-500/10 pl-2">
@@ -154,7 +154,7 @@ const TabItem = ({ tab, isActive, onClick, onClose, onDoubleClick, icon }) => {
   );
 };
 
-const OverflowMenu = ({ tabs, onTabClick, onTabClose }) => {
+const OverflowMenu = ({ tabs, activeTabId, onTabClick, onTabClose }) => {
   const menuRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -203,18 +203,6 @@ const OverflowMenu = ({ tabs, onTabClick, onTabClose }) => {
   );
 };
 
-// Helper for OverflowMenu
-const getFileIcon = (language) => {
-  const icons = {
-    python: '🐍', javascript: '🟨', typescript: '🔷', java: '☕',
-    csharp: '🔷', go: '🐹', rust: '🦀', ruby: '💎', php: '🐘',
-    swift: '🐦', kotlin: '🟣', dart: '🎯', scala: '🔴', julia: '🟪',
-    c: '🔵', cpp: '🔵', html: '🌐', css: '🎨', json: '📋',
-    markdown: '📝', sql: '🗄️', shell: '🐚', yaml: '📄', toml: '📄',
-    dockerfile: '🐳', plaintext: '📄',
-  };
-  return icons[language] || '📄';
-};
 
 const TabbedEditor = ({
   theme = 'vs-dark',

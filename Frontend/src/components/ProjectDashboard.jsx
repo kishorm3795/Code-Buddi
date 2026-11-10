@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useProject } from "../hooks/useProject";
 import ProjectCard from "./ProjectCard";
 import NewProjectModal from "./NewProjectModal";
-import { FaPlus, FaFolderOpen, FaSearch, FaDownload, FaUpload, FaCog, FaTimes, FaFilter } from "react-icons/fa";
+import { FaPlus, FaFolderOpen, FaSearch, FaDownload, FaUpload, FaCog, FaTimes, FaFilter, FaFileCode } from "react-icons/fa";
 
 const ProjectDashboard = () => {
-  const { projects, openProject, removeProject, copyProject, downloadProject, importProjectFile } = useProject();
+  const { projects, openProject, removeProject, copyProject, downloadProject, importProjectFile, newProject } = useProject();
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -189,8 +189,10 @@ const ProjectDashboard = () => {
         <NewProjectModal
           onClose={() => setShowNewProjectModal(false)}
           onCreate={(name, template, language) => {
-            const project = createProject(name, language, template);
-            openProject(project.id);
+            const project = newProject(name, language, template);
+            if (project) {
+              openProject(project.id);
+            }
             setShowNewProjectModal(false);
           }}
         />
